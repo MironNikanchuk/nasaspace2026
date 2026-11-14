@@ -1,5 +1,6 @@
 "use client";
 
+import { useLanguage } from "./language";
 import Link from "next/link";
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
@@ -10,11 +11,15 @@ import { ElevationChart, Timeline, elevationScale, utcLabel } from "./charts";
 import { VisibilityOverview } from "./visibility-overview";
 import { PRESETS, parsePair } from "@/lib/presets";
 import { saveScenario } from "@/lib/saved";
+import type { Translate } from "@/lib/locale";
 import type { Catalog, Comparison, Horizon, Result, Scenario, ScenarioPair } from "@/lib/types";
 
 const MissionScene = dynamic(() => import("./mission-scene").then((module) => module.MissionScene), {
   ssr: false,
-  loading: () => <div className="scene-placeholder" role="status">Preparing the 3D horizon…</div>,
+  loading: function Loading() {
+    const { t } = useLanguage();
+    return <div className="scene-placeholder" role="status">{t("Preparing the 3D horizon…")}</div>;
+  },
 });
 
 function localInput(value: string) {
@@ -53,10 +58,11 @@ async function compare(pair: ScenarioPair, signal: AbortSignal): Promise<Compari
 }
 
 function DateFields({ scenario, onChange }: { scenario: Scenario; onChange: (scenario: Scenario) => void }) {
+  const { t } = useLanguage();
   return <div className="scenario-dates">
-    <label className="field">Start (UTC)<input type="datetime-local" required value={localInput(scenario.start_utc)}
+    <label className="field">{t("Start (UTC)")}<input type="datetime-local" required value={localInput(scenario.start_utc)}
       onChange={(event) => onChange({ ...scenario, start_utc: fromInput(event.target.value) })} /></label>
-    <label className="field">End (UTC)<input type="datetime-local" required value={localInput(scenario.end_utc)}
+    <label className="field">{t("End (UTC)")}<input type="datetime-local" required value={localInput(scenario.end_utc)}
       onChange={(event) => onChange({ ...scenario, end_utc: fromInput(event.target.value) })} /></label>
   </div>;
 }
@@ -64,28 +70,29 @@ function DateFields({ scenario, onChange }: { scenario: Scenario; onChange: (sce
 function ScenarioForm({ label, scenario, catalog, separateDates, onChange }: {
   label: string; scenario: Scenario; catalog: Catalog; separateDates: boolean; onChange: (scenario: Scenario) => void;
 }) {
+  const { t } = useLanguage();
   const entry = catalog.sites.find((item) => item.site.id === scenario.site_id);
   const horizons = entry?.supported_horizons ?? ["geometric"];
   return <fieldset className="scenario-form">
-    <legend>Scenario {label}</legend>
-    <label className="field">Landing site<select value={scenario.site_id ?? "custom"}
+    <legend>{t("Scenario "+label)}</legend>
+    <label className="field">{t("Landing site")}<select value={scenario.site_id ?? "custom"}
       onChange={(event) => onChange(changeScenarioSite(scenario, event.target.value, catalog))}>
       {catalog.sites.map(({ site }) => <option key={site.id} value={site.id}>{site.name}</option>)}
-      {(catalog.custom_coordinates_supported || scenario.coordinates) && <option value="custom">Custom coordinates</option>}
+      {(catalog.custom_coordinates_supported || scenario.coordinates) && <option value="custom">{t("Custom coordinates")}</option>}
     </select></label>
     {scenario.coordinates && <div className="scenario-dates">
-      <label className="field">Latitude (°)<input type="number" step="any" min="-89.999999" max="-80"
+      <label className="field">{t("Latitude (°)")}<input type="number" step="any" min="-89.999999" max="-80"
         value={Number.isFinite(scenario.coordinates.latitude_deg) ? scenario.coordinates.latitude_deg : ""}
         onChange={(e) => onChange({ ...scenario, coordinates: { ...scenario.coordinates!, latitude_deg: e.target.valueAsNumber } })} /></label>
-      <label className="field">Longitude east (°)<input type="number" step="any" min="0" max="359.999999"
+      <label className="field">{t("Longitude east (°)")}<input type="number" step="any" min="0" max="359.999999"
         value={Number.isFinite(scenario.coordinates.longitude_east_deg) ? scenario.coordinates.longitude_east_deg : ""}
         onChange={(e) => onChange({ ...scenario, coordinates: { ...scenario.coordinates!, longitude_east_deg: e.target.valueAsNumber } })} /></label>
     </div>}
     {separateDates && <DateFields scenario={scenario} onChange={onChange} />}
-    <label className="field">Horizon<select value={scenario.horizon ?? "geometric"}
+    <label className="field">{t("Horizon")}<select value={scenario.horizon ?? "geometric"}
       onChange={(event) => onChange({ ...scenario, horizon: event.target.value as Horizon })}>
-      <option value="geometric">Geometric horizon</option>
-      {horizons.includes("terrain") && <option value="terrain">LOLA terrain horizon</option>}
+      <option value="geometric">{t("Geometric horizon")}</option>
+      {horizons.includes("terrain") && <option value="terrain">{t("LOLA terrain horizon")}</option>}
     </select></label>
   </fieldset>;
 }
@@ -121,19 +128,20 @@ function ResultPanel({ result, index, scale, active, select }: {
   active: number;
   select: (timestamp: string) => void;
 }) {
+  const { t } = useLanguage();
   const model = result.model.horizon === "terrain" ? "LOLA terrain" : "Geometric horizon";
   return <article className="result-panel">
     <div className="panel-title">
       <span className="scenario-letter">{index ? "B" : "A"}</span>
-      <div><h3>{result.site.name}</h3><p>{model} · {shortDate.formatRange(new Date(result.start_utc), new Date(result.end_utc))} UTC</p></div>
+      <div><h3>{result.site.name}</h3><p>{t(model)} · {shortDate.formatRange(new Date(result.start_utc), new Date(result.end_utc))} UTC</p></div>
     </div>
     <div className="metric-row">{metrics.map((item) =>
-      <div key={item.key}><span><i className={item.color} />{item.label}</span><strong>{pct(result.summary[item.key])}</strong></div>)}</div>
+      <div key={item.key}><span><i className={item.color} />{t(item.label)}</span><strong>{pct(result.summary[item.key])}</strong></div>)}</div>
     <ElevationChart result={result} active={active} select={(point) => select(result.samples[point].time_utc)} scale={scale} />
-    <div className="plot-head window-head"><h4>Visibility windows</h4><span>UTC</span></div>
+    <div className="plot-head window-head"><h4>{t("Visibility windows")}</h4><span>UTC</span></div>
     <Timeline result={result} />
-    <div className="outages"><span>Longest Sun outage <b>{result.summary.longest_sun_outage_hours.toFixed(1)} h</b></span>
-      <span>Longest Earth outage <b>{result.summary.longest_earth_outage_hours.toFixed(1)} h</b></span></div>
+    <div className="outages"><span>{t("Longest Sun outage")} <b>{result.summary.longest_sun_outage_hours.toFixed(1)} h</b></span>
+      <span>{t("Longest Earth outage")} <b>{result.summary.longest_earth_outage_hours.toFixed(1)} h</b></span></div>
   </article>;
 }
 
@@ -152,7 +160,7 @@ function sampleIndex(result: Result, progress: number) {
     <= Date.parse(result.samples[low].time_utc) - target ? low - 1 : low;
 }
 
-function comparisonInsight(result: Comparison) {
+function comparisonInsight(result: Comparison, t: Translate) {
   const [a, b] = result.scenarios;
   const sameSite = a.site.id === b.site.id
     && a.site.latitude_deg === b.site.latitude_deg && a.site.longitude_east_deg === b.site.longitude_east_deg;
@@ -160,16 +168,20 @@ function comparisonInsight(result: Comparison) {
   if (sameSite && samePeriod && a.model.horizon !== b.model.horizon) {
     const [geometric, terrain] = a.model.horizon === "geometric" ? [a, b] : [b, a];
     const change = terrain.summary.earth_visible_percent - geometric.summary.earth_visible_percent;
-    if (Math.abs(change) < .05) return "Earth visibility is the same with both horizon models at this precision.";
-    return `At ${a.site.name}, terrain ${change < 0 ? "reduces" : "increases"} Earth visibility from ${pct(geometric.summary.earth_visible_percent)} to ${pct(terrain.summary.earth_visible_percent)}.`;
+    if (Math.abs(change) < .05) return t("Earth visibility is the same with both horizon models at this precision.");
+    return t("At {site}, terrain changes Earth visibility from {before} to {after}.")
+      .replace("{site}", a.site.name).replace("{before}", pct(geometric.summary.earth_visible_percent))
+      .replace("{after}", pct(terrain.summary.earth_visible_percent));
   }
   const change = a.summary.both_visible_percent - b.summary.both_visible_percent;
-  if (Math.abs(change) < .05) return `Both scenarios give ${pct(a.summary.both_visible_percent)} simultaneous Sun and Earth visibility at this precision.`;
+  if (Math.abs(change) < .05) return t("Both scenarios give {overlap} simultaneous Sun and Earth visibility at this precision.").replace("{overlap}", pct(a.summary.both_visible_percent));
   const winner = change > 0 ? "A" : "B";
-  return `Scenario ${winner} has ${Math.abs(change).toFixed(1)} percentage points more simultaneous Sun and Earth visibility.`;
+  return t("Scenario {winner} has {difference} percentage points more simultaneous Sun and Earth visibility.")
+    .replace("{winner}", winner).replace("{difference}", Math.abs(change).toFixed(1));
 }
 
 export function Workspace({ initial }: { initial: ScenarioPair }) {
+  const { t } = useLanguage();
   const [catalog, setCatalog] = useState<Catalog>();
   const [pair, setPair] = useState(initial);
   const [separateDates, setSeparateDates] = useState(() => initial[0].start_utc !== initial[1].start_utc || initial[0].end_utc !== initial[1].end_utc);
@@ -276,8 +288,8 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
   }
 
   return <>
-    <div className="workspace-heading"><h1>Compare landing sites</h1>
-      <Link href="/atlas" className="text-link">Lunar atlas <Icon name="arrow-right" width={16} /></Link></div>
+    <div className="workspace-heading"><h1>{t("Compare landing sites")}</h1>
+      <Link href="/atlas" className="text-link">{t("Lunar atlas")} <Icon name="arrow-right" width={16} /></Link></div>
 
     {catalog && <form className="controls-panel" onSubmit={(e) => {
       e.preventDefault();
@@ -293,10 +305,10 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
         <label className="date-mode"><input type="checkbox" checked={separateDates} onChange={(event) => {
           if (!event.target.checked) shareDates(pair[0]);
           setSeparateDates(event.target.checked);
-        }} /> Separate dates</label>
+        }} /> {t("Separate dates")}</label>
       </div>
       <div className="controls-footer">
-        <label className="field preset-field"><span>Preset</span><select value={PRESETS.find((preset) =>
+        <label className="field preset-field"><span>{t("Preset")}</span><select value={PRESETS.find((preset) =>
           JSON.stringify(preset.scenarios) === JSON.stringify(pair))?.id ?? ""} onChange={(event) => {
           const preset = PRESETS.find((item) => item.id === event.target.value);
           if (!preset) return;
@@ -304,42 +316,42 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
           setSeparateDates(false);
           void run(preset.scenarios);
         }}>
-          <option value="" disabled>Choose preset</option>
-          {PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
+          <option value="" disabled>{t("Choose preset")}</option>
+          {PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{t(preset.label)}</option>)}
         </select></label>
-        {catalog.demo_only && <p>Available offline · Jan 7–14</p>}
+        {catalog.demo_only && <p>{t("Available offline · Jan 7–14")}</p>}
         <button className="button button-primary" disabled={loading || !parsePair(pair)} type="submit"><Icon name="arrows-exchange" width={18} />
-          {loading ? "Comparing…" : "Run comparison"}</button></div>
+          {loading ? t("Comparing…") : t("Run comparison")}</button></div>
     </form>}
 
-    {error && <p className="feedback error" role="alert">{error}</p>}
-    {loading && !result && <p className="feedback" role="status">Loading comparison…</p>}
-    {result && <section className="results" aria-label="Comparison results" aria-busy={loading}>
-      <header className="results-header"><div><h2>Results</h2>{dirty && <p>Run again to apply your changes.</p>}</div>
+    {error && <p className="feedback error" role="alert">{t(error)}</p>}
+    {loading && !result && <p className="feedback" role="status">{t("Loading comparison…")}</p>}
+    {result && <section className="results" aria-label={t("Comparison results")} aria-busy={loading}>
+      <header className="results-header"><div><h2>{t("Results")}</h2>{dirty && <p>{t("Run again to apply your changes.")}</p>}</div>
         <div className="result-actions">
-          <details className="export-actions"><summary className="button button-small">Export</summary><div>
+          <details className="export-actions"><summary className="button button-small">{t("Export")}</summary><div>
             <button className="button button-small" onClick={() => csvDownload(result)}>CSV</button>
-            <button className="button button-small" onClick={() => window.print()}>Print report</button>
+            <button className="button button-small" onClick={() => window.print()}>{t("Print report")}</button>
           </div></details>
           <button className="button button-small" onClick={async () => {
             const url = new URL("/workspace", window.location.origin);
             url.searchParams.set("scenario", JSON.stringify(compared));
             try { await navigator.clipboard.writeText(url.href); setNotice("Comparison link copied."); }
             catch { router.replace(url.pathname + url.search, { scroll: false }); setNotice("Copy the comparison link from the address bar."); }
-          }}><Icon name="link" />Share</button>
+          }}><Icon name="link" />{t("Share")}</button>
           <button className="button button-small" disabled={!ready} onClick={() => setSaveOpen(!saveOpen)}>
-            <Icon name="bookmark" />Save</button>
+            <Icon name="bookmark" />{t("Save")}</button>
         </div>
       </header>
-      {result.demo_only && <p className="result-source" role="status">Bundled demo data · January 7–14, 2027 UTC</p>}
+      {result.demo_only && <p className="result-source" role="status">{t("Bundled demo data · January 7–14, 2027 UTC")}</p>}
       {saveOpen && <form className="panel save-form" onSubmit={onSave}>
-        <label className="field">Scenario title<input name="title" maxLength={100} required autoFocus defaultValue={`${result.scenarios[0].site.name} / ${result.scenarios[1].site.name}`} /></label>
-        <button className="button button-primary" disabled={saving}>{saving ? "Saving…" : "Save scenario"}</button>
-        {!user && <span>Guest saves stay on this device.</span>}
+        <label className="field">{t("Scenario title")}<input name="title" maxLength={100} required autoFocus defaultValue={`${result.scenarios[0].site.name} / ${result.scenarios[1].site.name}`} /></label>
+        <button className="button button-primary" disabled={saving}>{saving ? t("Saving…") : t("Save scenario")}</button>
+        {!user && <span>{t("Guest saves stay on this device.")}</span>}
       </form>}
-      {notice && <p className="feedback" role="status">{notice}</p>}
+      {notice && <p className="feedback" role="status">{t(notice)}</p>}
       <div className="insight">
-        <p aria-live="polite">{comparisonInsight(result)}</p>
+        <p aria-live="polite">{comparisonInsight(result, t)}</p>
         {terrainEffect && <button className="insight-link" type="button" onClick={() => {
           const scenario = result.scenarios[terrainEffect.view];
           const timestamp = Date.parse(terrainEffect.timestamp);
@@ -352,18 +364,18 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
             horizonDetails.current.scrollIntoView({ block: "nearest" });
             horizonDetails.current.querySelector("summary")?.focus({ preventScroll: true });
           }
-        }}>Show the obstruction <Icon name="arrow-down" width={16} /></button>}
+        }}>{t("Show the obstruction")} <Icon name="arrow-down" width={16} /></button>}
       </div>
       {sceneResult && sceneSample && <VisibilityOverview sample={sceneSample} site={sceneResult.site.name} view={view} select={setView} />}
       {indices && <div className="time-control">
-        <div><label htmlFor="comparison-time">{samePeriod ? "Time (UTC)" : "Progress through each period"}</label>
+        <div><label htmlFor="comparison-time">{samePeriod ? t("Time (UTC)") : t("Progress through each period")}</label>
           <span>{samePeriod ? utcLabel(result.scenarios[0].samples[indices[0]].time_utc)
             : `A · ${utcLabel(result.scenarios[0].samples[indices[0]].time_utc)} / B · ${utcLabel(result.scenarios[1].samples[indices[1]].time_utc)}`}</span></div>
         <div className="time-playback">
           <button className="button button-small" type="button" onClick={() => {
             if (playbackFinished) { setProgress(0); setPlaying(true); }
             else setPlaying(!playing);
-          }}>{playbackFinished ? "Replay" : playing ? "Pause" : "Play"}</button>
+          }}>{playbackFinished ? t("Replay") : playing ? t("Pause") : t("Play")}</button>
           <input type="range" id="comparison-time" min={0} max={timeSteps} value={Math.round(progress * timeSteps)}
             onChange={(event) => seek(Number(event.target.value) / timeSteps)}
             aria-valuetext={samePeriod ? utcLabel(result.scenarios[0].samples[indices[0]].time_utc) : `${Math.round(progress * 100)} percent`} />
@@ -374,13 +386,13 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
           select={(timestamp) => seek((Date.parse(timestamp) - Date.parse(scenario.start_utc))
             / (Date.parse(scenario.end_utc) - Date.parse(scenario.start_utc)))} />)}</div>
       <details className="horizon-details" ref={horizonDetails} onToggle={(event) => { if (event.currentTarget.open) setShowScene(true); }}>
-        <summary>Inspect the horizon in 3D</summary>
-        <div className="horizon-head"><div className="segmented" aria-label="3D scenario">
-          <button type="button" aria-pressed={view === 0} onClick={() => setView(0)}>Scenario A</button>
-          <button type="button" aria-pressed={view === 1} onClick={() => setView(1)}>Scenario B</button>
+        <summary>{t("Inspect the horizon in 3D")}</summary>
+        <div className="horizon-head"><div className="segmented" aria-label={t("3D scenario")}>
+          <button type="button" aria-pressed={view === 0} onClick={() => setView(0)}>{t("Scenario A")}</button>
+          <button type="button" aria-pressed={view === 1} onClick={() => setView(1)}>{t("Scenario B")}</button>
         </div></div>
         {showScene && sceneResult && sceneSample && <>
-          <div className="scene-time"><label htmlFor="horizon-time">Horizon time</label>
+          <div className="scene-time"><label htmlFor="horizon-time">{t("Horizon time")}</label>
             <input type="range" id="horizon-time" min={0} max={timeSteps} value={Math.round(progress * timeSteps)}
               onChange={(event) => seek(Number(event.target.value) / timeSteps)}
               aria-valuetext={utcLabel(sceneSample.time_utc)} />
@@ -390,8 +402,8 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
         </>}
       </details>
       <details className="report-method">
-        <summary>Data and assumptions</summary>
-        <p>Visibility uses each body’s center. Angles are in degrees and time is UTC.</p>
+        <summary>{t("Data and assumptions")}</summary>
+        <p>{t("Visibility uses each body’s center. Angles are in degrees and time is UTC.")}</p>
         <p>{result.dataset.ephemeris} · {result.dataset.step_minutes}-minute samples · {result.dataset.coordinate_frame}
           {result.scenarios.some((scenario) => scenario.model.horizon === "terrain") && " · LOLA terrain, up to 45 km"}</p>
         <p><a href={result.dataset.ephemeris_source_url}>NASA JPL Horizons</a> · <a href="https://pgda.gsfc.nasa.gov/products/90">NASA LOLA elevation model</a></p>

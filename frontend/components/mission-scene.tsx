@@ -11,6 +11,7 @@ import {
   planetRenderer, positionDirection, terrainProfile,
 } from "@/lib/lunar-scene";
 import { connectCamera, type CameraFrame } from "@/lib/camera-motion";
+import { useLanguage } from "./language";
 import type { Result, Sample, Site } from "@/lib/types";
 import styles from "./mission-scene.module.css";
 
@@ -50,6 +51,7 @@ function terrainElevation(azimuth: number, profile?: readonly number[]) {
 function SkyDiagram({ sample, focus, profile }: {
   sample: Sample; focus: Body; profile?: readonly number[];
 }) {
+  const { t } = useLanguage();
   const center = sample[focus].azimuth_deg;
   const top = Math.max(24, sample[focus].elevation_deg + 9, sample[focus].horizon_elevation_deg + 6);
   const bottom = Math.min(-21, sample[focus].elevation_deg - 9);
@@ -76,7 +78,7 @@ function SkyDiagram({ sample, focus, profile }: {
           y2={y(p.horizon_elevation_deg)} stroke={color} strokeDasharray="3 4" strokeOpacity=".6" />
         <circle cx={x(p.azimuth_deg)} cy={y(p.elevation_deg)} r="5" fill={p.above_horizon ? color : "#171a15"}
           stroke={color} strokeWidth="1.4" />
-        <text x={x(p.azimuth_deg) + 12} y={y(p.elevation_deg) + 3} fill={color} fontSize="12">{BODY_NAMES[body]}</text>
+        <text x={x(p.azimuth_deg) + 12} y={y(p.elevation_deg) + 3} fill={color} fontSize="12">{t(BODY_NAMES[body])}</text>
       </g>;
     })}
   </svg>;
@@ -130,17 +132,19 @@ function occlusionMarker(color: string) {
 }
 
 function BodyReading({ body, sample }: { body: Body; sample: Sample }) {
+  const { t } = useLanguage();
   const value = sample[body];
   const margin = value.elevation_deg - value.horizon_elevation_deg;
   const color = body === "sun" ? SUN_COLOR : EARTH_COLOR;
   return <div className={styles.reading}>
-    <strong>{BODY_NAMES[body]} <small style={{ color }}>{value.above_horizon ? "Visible" : "Below horizon"}</small></strong>
+    <strong>{t(BODY_NAMES[body])} <small style={{ color }}>{t(value.above_horizon ? "Visible" : "Below horizon")}</small></strong>
     <b>{value.azimuth_deg.toFixed(1)}° az · {value.elevation_deg.toFixed(1)}° el</b>
     <small>{margin >= 0 ? "+" : "−"}{Math.abs(margin).toFixed(2)}° from modeled horizon</small>
   </div>;
 }
 
 export function MissionScene({ result, sample }: { result: Result; sample: Sample }) {
+  const { t } = useLanguage();
   const [focus, setFocus] = useState<Body>("earth");
   const [webgl, setWebgl] = useState(false);
   const canvas = useRef<HTMLCanvasElement>(null);
@@ -268,15 +272,15 @@ export function MissionScene({ result, sample }: { result: Result; sample: Sampl
 
   return <figure className={styles.figure} aria-label={`Local sky at ${result.site.name}`}>
     <div className={styles.toolbar}>
-      <div className={styles.location}><strong>Horizon view</strong><span>{sample.time_utc.slice(0, 16).replace("T", " ")} UTC · {result.site.name}</span></div>
-      <div className={styles.switches} aria-label="Point camera toward">
+      <div className={styles.location}><strong>{t("Horizon view")}</strong><span>{sample.time_utc.slice(0, 16).replace("T", " ")} UTC · {result.site.name}</span></div>
+      <div className={styles.switches} aria-label={t("Point camera toward")}>
         {BODIES.map((body) => <button key={body} type="button" aria-pressed={focus === body}
-          onClick={() => { setFocus(body); controls.current?.reset(); }}>{BODY_NAMES[body]}</button>)}
-        {webgl && <button type="button" onClick={() => controls.current?.reset()}>Recenter</button>}
+          onClick={() => { setFocus(body); controls.current?.reset(); }}>{t(BODY_NAMES[body])}</button>)}
+        {webgl && <button type="button" onClick={() => controls.current?.reset()}>{t("Recenter")}</button>}
       </div>
     </div>
     <div ref={surface} className={`${styles.viewport} ${styles.sky} ${webgl ? styles.ready : ""}`}
-      tabIndex={webgl ? 0 : undefined} role="group" aria-label="Horizon camera. Drag or use arrow keys to look around. Plus and minus zoom.">
+      tabIndex={webgl ? 0 : undefined} role="group" aria-label={t("Horizon camera. Drag or use arrow keys to look around. Plus and minus zoom.")}>
       <div className={styles.fallback}>
         <SkyDiagram sample={sample} focus={focus} profile={profile} />
       </div>
@@ -285,27 +289,27 @@ export function MissionScene({ result, sample }: { result: Result; sample: Sampl
         {BODIES.map((body) => <span key={body} ref={(node) => { if (node) labels.current[body] = node; }}
           className={styles.bodyLabel}
           style={{ color: body === "sun" ? SUN_COLOR : EARTH_COLOR }}>
-          {BODY_NAMES[body]}{sample[body].above_horizon ? "" : " · below horizon"}
+          {t(BODY_NAMES[body])}{sample[body].above_horizon ? "" : " · " + t("Below horizon")}
         </span>)}
       </div>
       <span className={styles.compass} data-compass>{Math.round(sample[focus].azimuth_deg) % 360}° az</span>
       <div className={styles.horizonStatus}>
-        <strong>{BODY_NAMES[focus]} {sample[focus].above_horizon ? "visible" : "below horizon"}</strong>
+        <strong>{t(BODY_NAMES[focus])} {t(sample[focus].above_horizon ? "Visible" : "Below horizon")}</strong>
         <span>{sample[focus].elevation_deg.toFixed(2)}° elevation · {sample[focus].horizon_elevation_deg.toFixed(2)}° horizon</span>
       </div>
       {webgl && <div className={styles.cameraTools}>
-        <button type="button" aria-label="Zoom in" onClick={() => controls.current?.zoom(1.24)}>+</button>
-        <button type="button" aria-label="Zoom out" onClick={() => controls.current?.zoom(1 / 1.24)}>−</button>
+        <button type="button" aria-label={t("Zoom in")} onClick={() => controls.current?.zoom(1.24)}>+</button>
+        <button type="button" aria-label={t("Zoom out")} onClick={() => controls.current?.zoom(1 / 1.24)}>−</button>
       </div>}
     </div>
     <div className={styles.sceneKey}>
       <span><b className={styles.lineKey} />{profile ? "LOLA terrain" : "Geometric horizon"}</span>
       {profile && <span><b className={styles.zeroKey} />0° horizontal</span>}
-      <span><b className={styles.hiddenKey} />Body hidden by the horizon</span>
-      {webgl && <span>Drag to look around · focus to zoom</span>}
+      <span><b className={styles.hiddenKey} />{t("Body hidden by the horizon")}</span>
+      {webgl && <span>{t("Drag to look around · focus to zoom")}</span>}
     </div>
     <div className={styles.readings}>{BODIES.map((body) => <BodyReading key={body} body={body} sample={sample} />)}</div>
-    <figcaption>{profile ? "NASA LOLA angular horizon" : "Geometric horizon at 0°"} · Body sizes and distances are illustrative</figcaption>
+    <figcaption>{t(profile ? "NASA LOLA angular horizon" : "Geometric horizon at 0°")} · {t("Body sizes and distances are illustrative")}</figcaption>
   </figure>;
 }
 
@@ -353,9 +357,11 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
   assignments?: readonly [string | undefined, string | undefined];
   hero?: boolean;
 }) {
-  const [view, setView] = useState<GlobeView>(hero ? "moon" : "pole");
+  const { t } = useLanguage();
+  const [view, setView] = useState<GlobeView>("moon");
   const [webgl, setWebgl] = useState(false);
   const [panning, setPanning] = useState(false);
+  const [spinPaused, setSpinPaused] = useState(false);
   const canvas = useRef<HTMLCanvasElement>(null);
   const surface = useRef<HTMLDivElement>(null);
   const controls = useRef<ReturnType<typeof connectCamera> | null>(null);
@@ -366,6 +372,7 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
   const redraw = useRef<(() => void) | undefined>(undefined);
   const sitesRef = useRef(sites);
   const viewRef = useRef(view);
+  const idleRotation = useRef(0);
   const zoomStep = hero ? 1.09 : 1.24;
 
   useEffect(() => {
@@ -380,21 +387,11 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
     key.position.set(-2, -3, 4);
     scene.add(key, new AmbientLight("#faf4eb", 1.55));
 
-    const graticule = new Group();
-    const gridMaterial = new LineBasicMaterial({ color: "#e5dfcd", transparent: true, opacity: .38 });
-    for (const latitude of [-88, -86, -84, -82]) {
-      const points = Array.from({ length: 120 }, (_, index) => moonDirection(latitude, index * 3, 1.0025));
-      graticule.add(new LineLoop(new BufferGeometry().setFromPoints(points), gridMaterial));
-    }
-    for (const longitude of [0, 90, 180, 270]) {
-      const points = Array.from({ length: 24 }, (_, index) => moonDirection(-90 + index * .5, longitude, 1.003));
-      graticule.add(new Line(new BufferGeometry().setFromPoints(points), gridMaterial));
-    }
-    scene.add(graticule);
     const polarMap = polarSurface();
     polarMap.visible = false;
     scene.add(polarMap);
 
+    let moonModel: Awaited<ReturnType<typeof loadPlanet>> | undefined;
     const draw = () => {
       const pole = viewRef.current === "pole";
       const { width, height } = element.getBoundingClientRect();
@@ -417,8 +414,8 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
       camera.lookAt(0, 0, 0);
       camera.updateProjectionMatrix();
       camera.updateMatrixWorld();
-      graticule.visible = pole;
       polarMap.visible = pole && Boolean(polarMap.material.map);
+      if (moonModel && hero) moonModel.rotation.y = idleRotation.current;
 
       const controls: { x: number; y: number }[] = [];
       for (const { site, vector } of radialCoordinates(sitesRef.current)) {
@@ -466,11 +463,25 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
     const unavailable = () => setWebgl(false);
     element.addEventListener("webglcontextlost", unavailable);
 
+    let spin: ReturnType<typeof setInterval> | undefined;
     void loadPlanet(MOON_ASSET, 1).then((moon) => {
       if (closed) { disposeScene(moon); return; }
+      moonModel = moon;
       scene.add(moon);
       resize();
       setWebgl(true);
+      if (hero) {
+        const viewport = surface.current;
+        const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
+        spin = setInterval(() => {
+          if (!viewport || viewport.dataset.spinPaused === "true" || reducedMotion.matches || document.hidden || viewport.matches(":hover, :focus-within")
+            || viewport.dataset.dragging) return;
+          const bounds = viewport.getBoundingClientRect();
+          if (bounds.bottom <= 0 || bounds.top >= window.innerHeight) return;
+          idleRotation.current = (idleRotation.current + .0018) % (Math.PI * 2);
+          draw();
+        }, 40);
+      }
     }).catch(() => { /* Keep the map fallback and site controls accessible. */ });
     if (!hero) void new TextureLoader().loadAsync(LOLA_ASSET).then((texture) => {
       if (closed) { texture.dispose(); return; }
@@ -482,6 +493,7 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
 
     return () => {
       closed = true;
+      clearInterval(spin);
       interaction.dispose();
       controls.current = null;
       observer.disconnect();
@@ -498,16 +510,15 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
     redraw.current?.();
   }, [sites, view]);
 
-  return <figure className={styles.figure} aria-label={hero ? "Interactive 3D Moon" : "Interactive lunar landing site map"}>
+  return <figure className={styles.figure} aria-label={t(hero ? "Interactive 3D Moon" : "Interactive lunar landing site map")}>
     {!hero && <div className={styles.toolbar}>
-      <div className={styles.location}><strong>Lunar surface</strong><span>{view === "pole" ? "South polar view" : "Nearside overview"}</span></div>
-      <div className={styles.switches} aria-label="Globe camera">
-        <button type="button" aria-pressed={view === "pole"} onClick={() => { controls.current?.reset(); setView("pole"); }}>South pole</button>
-        <button type="button" aria-pressed={view === "moon"} onClick={() => { controls.current?.reset(); setView("moon"); }}>Full Moon</button>
+      <div className={styles.switches} aria-label={t("Globe camera")}>
+        <button type="button" aria-pressed={view === "pole"} onClick={() => { controls.current?.reset(); setView("pole"); }}>{t("South pole")}</button>
+        <button type="button" aria-pressed={view === "moon"} onClick={() => { controls.current?.reset(); setView("moon"); }}>{t("Full Moon")}</button>
       </div>
     </div>}
-    <div ref={surface} data-panning={panning} className={`${styles.viewport} ${styles.globeViewport} ${hero ? styles.heroGlobe : ""} ${webgl ? styles.ready : ""}`}
-      tabIndex={webgl ? 0 : undefined} role="group" aria-label={`Moon camera. Drag or use arrows to rotate. ${hero ? "" : "Shift and drag to pan. "}Plus and minus zoom.`}>
+    <div ref={surface} data-panning={panning} data-spin-paused={spinPaused} className={`${styles.viewport} ${styles.globeViewport} ${hero ? styles.heroGlobe : ""} ${webgl ? styles.ready : ""}`}
+      tabIndex={webgl ? 0 : undefined} role="group" aria-label={t("Moon camera")}>
       <div className={styles.fallback}>
         <div className={styles.fallbackOptions}>
           {sites.map((site, index) => <button key={site.id} type="button" aria-pressed={selectedId === site.id}
@@ -528,17 +539,13 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
         </div>)}
       </div>
       {webgl && <div className={styles.cameraTools}>
-        {!hero && <button type="button" aria-pressed={panning} onClick={() => setPanning(!panning)}>Pan</button>}
-        <button type="button" aria-label="Zoom in" onClick={() => controls.current?.zoom(zoomStep)}>+</button>
-        <button type="button" aria-label="Zoom out" onClick={() => controls.current?.zoom(1 / zoomStep)}>−</button>
-        <button type="button" onClick={() => controls.current?.reset()}>Reset view</button>
+        {hero && <button type="button" aria-label={t(spinPaused ? "Resume rotation" : "Pause rotation")} onClick={() => setSpinPaused(!spinPaused)}>{spinPaused ? "▶" : "Ⅱ"}</button>}
+        {!hero && <button type="button" aria-pressed={panning} onClick={() => setPanning(!panning)}>{t("Pan")}</button>}
+        <button type="button" aria-label={t("Zoom in")} onClick={() => controls.current?.zoom(zoomStep)}>+</button>
+        <button type="button" aria-label={t("Zoom out")} onClick={() => controls.current?.zoom(1 / zoomStep)}>−</button>
+        <button type="button" onClick={() => { idleRotation.current = 0; controls.current?.reset(); }}>{t("Reset view")}</button>
       </div>}
-      {!hero && <span className={styles.compass}>{view === "pole" ? "South polar region" : "Lunar globe"}</span>}
     </div>
-    <figcaption>
-      {!hero && "Site coordinates in MEAN_ME · "}<a href="https://solarsystem.nasa.gov/gltf_embed/2366/">NASA Moon model</a>
-      {webgl && " · Drag to rotate"}
-      {view === "pole" && <> · <a href="https://pgda.gsfc.nasa.gov/products/90">NASA LOLA reference hillshade</a></>}
-    </figcaption>
+    {hero && <figcaption><a href="/sources">{t("NASA Moon model")}</a></figcaption>}
   </figure>;
 }

@@ -75,3 +75,20 @@ test("the three-body view follows the scenario switch and shared time controls",
   await page.getByRole("button", { name: "Pause", exact: true }).click();
   await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
 });
+
+test("language selection persists across the landing page, atlas and sources", async ({ page }) => {
+  await page.setViewportSize({ width: 320, height: 800 });
+  await page.goto("/");
+  await page.getByRole("combobox", { name: "Language" }).selectOption("ru");
+  await expect(page.getByRole("heading", { name: "Как рельеф меняет видимость" })).toBeVisible();
+  await expect(page.getByRole("figure", { name: "Видимость Земли на Connecting Ridge" }).locator("svg image")).toHaveCount(3);
+  await page.getByRole("link", { name: "Лунный атлас", exact: true }).click();
+  await expect(page.getByRole("heading", { name: "Лунный атлас", exact: true })).toBeVisible();
+  await page.getByRole("combobox", { name: "Язык" }).selectOption("uz");
+  await expect(page.getByRole("heading", { name: "Oy atlasi", exact: true })).toBeVisible();
+  await page.goto("/sources");
+  await expect(page.getByRole("heading", { name: "Manbalar", exact: true })).toBeVisible();
+  await expect(page.locator("html")).toHaveAttribute("lang", "uz");
+  await expect(page.getByRole("link", { name: /GitHub repozitoriysi/ })).toHaveAttribute("href", /github\.com/);
+  expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+});

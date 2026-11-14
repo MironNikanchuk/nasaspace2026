@@ -1,5 +1,6 @@
 "use client";
 
+import { useLanguage } from "./language";
 import { useId } from "react";
 import type { Result, Sample, Window } from "@/lib/types";
 
@@ -67,9 +68,10 @@ export function ElevationChart({ result, active, select, scale }: {
 }
 
 function Track({ windows, start, end, body }: { windows: Window[]; start: number; end: number; body: keyof typeof colors }) {
+  const { t } = useLanguage();
   const name = body === "both" ? "Overlap" : body === "sun" ? "Sun" : "Earth";
   const fraction = (time: string) => (Date.parse(time) - start) / (end - start) * 100;
-  return <div className="track-row"><span>{name}</span><div className="track"
+  return <div className="track-row"><span>{t(name)}</span><div className="track"
     role="img" aria-label={`${name}: ${windows.length} visibility windows`}>
     {windows.map((w) => <span key={w.start_utc}
       title={`${w.start_utc.slice(0, 19).replace("T", " ")} → ${w.end_utc.slice(0, 19).replace("T", " ")} UTC`}

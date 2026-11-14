@@ -439,3 +439,24 @@
 .terrainTime input { flex: 1; min-width: 104px; accent-color: var(--accent); }
 .terrainDemo figcaption { padding: 8px 14px; border-top: 1px solid var(--line); font-size: 13px; color: var(--sub); }
 .terrainDemo figcaption a { text-decoration: underline; text-underline-offset: 3px; }
+
+.nav nav a { display: inline-flex; align-items: center; gap: 7px; }
+.evidence, .team { scroll-margin-top: 24px; }
+.team { grid-template-columns: 1fr; gap: 24px; }
+.teamLogo { width: clamp(132px, 20vw, 210px); height: auto; margin-bottom: 12px; }
+.team ul { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; border-top: 0; }
+.team li { display: flex; flex-direction: column; gap: 6px; padding: 0 0 12px; }
+.team li span { color: var(--soft); }
+.portrait { aspect-ratio: 5 / 4; display: grid; place-items: center; margin-bottom: 8px; border-radius: 6px; border: 1px solid var(--edge); background: #151515; font-family: var(--mono); color: var(--soft); }
+.eventMark img { width: 96px; max-height: 72px; object-fit: contain; }
+.footerLinks { flex-wrap: wrap; justify-content: end; }
+.githubLink { padding: 7px 10px; border: 1px solid var(--edge); border-radius: 5px; color: var(--text); }
+@media (max-width: 760px) {
+  .nav nav { display: flex; grid-column: 1 / -1; grid-row: 2; justify-content: space-between; gap: 8px; padding-bottom: 10px; font-size: .75rem; }
+  .navActions { grid-column: 2; grid-row: 1; }
+  .navAction { font-size: .75rem; }
+  .navAction svg { display: none; }
+  .team ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .footer { grid-template-columns: 1fr auto; }
+  .footerLinks { grid-column: 1 / -1; justify-self: start; justify-content: start; }
+}

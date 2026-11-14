@@ -1,3 +1,4 @@
+import { useLanguage } from "./language";
 import type { CSSProperties } from "react";
 import type { Position, Sample } from "@/lib/types";
 import styles from "./visibility-overview.module.css";
@@ -11,14 +12,15 @@ function verticalPosition(position: Position) {
 }
 
 function Body({ name, position }: { name: "Sun" | "Earth"; position: Position }) {
+  const { t } = useLanguage();
   const margin = clearance(position);
   const rounded = Number(margin.toFixed(2));
   const angle = `${rounded > 0 ? "+" : ""}${rounded}°`;
   return <div className={name === "Sun" ? styles.sun : styles.earth}>
     <img className={styles.bodyPortrait} src={name === "Sun" ? "/media/visibility-sun.webp" : "/media/visibility-earth.webp"} width="384" height="384" alt="" />
     <div className={styles.bodyLabel}>
-      <strong>{name}</strong>
-      <span><span className={styles.angle}>{angle}</span> · {position.above_horizon ? "Visible" : "Hidden"}</span>
+      <strong>{t(name)}</strong>
+      <span><span className={styles.angle}>{angle}</span> · {t(position.above_horizon ? "Visible" : "Hidden")}</span>
     </div>
   </div>;
 }
@@ -26,16 +28,17 @@ function Body({ name, position }: { name: "Sun" | "Earth"; position: Position })
 export function VisibilityOverview({ sample, site, view, select }: {
   sample: Sample; site: string; view: 0 | 1; select: (view: 0 | 1) => void;
 }) {
+  const { t } = useLanguage();
   const sunY = verticalPosition(sample.sun);
   const earthY = verticalPosition(sample.earth);
   const positions = { "--sun-y": `${sunY}%`, "--earth-y": `${earthY}%` } as CSSProperties;
 
   return <figure className={styles.overview} aria-labelledby="visibility-overview-title" style={positions}>
     <div className={styles.header}>
-      <h3 id="visibility-overview-title">Sun and Earth from the Moon</h3>
-      <div className="segmented" role="group" aria-label="Overview scenario">
-        <button type="button" aria-pressed={view === 0} onClick={() => select(0)}>Scenario A</button>
-        <button type="button" aria-pressed={view === 1} onClick={() => select(1)}>Scenario B</button>
+      <h3 id="visibility-overview-title">{t("Sun and Earth from the Moon")}</h3>
+      <div className="segmented" role="group" aria-label={t("Overview scenario")}>
+        <button type="button" aria-pressed={view === 0} onClick={() => select(0)}>{t("Scenario A")}</button>
+        <button type="button" aria-pressed={view === 1} onClick={() => select(1)}>{t("Scenario B")}</button>
       </div>
     </div>
     <div className={styles.scene}>
@@ -47,10 +50,10 @@ export function VisibilityOverview({ sample, site, view, select }: {
       <Body name="Sun" position={sample.sun} />
       <div className={styles.moon}>
         <img className={styles.bodyPortrait} src="/media/moon.jpg" width="720" height="720" alt="" />
-        <div className={styles.bodyLabel}><strong>Moon</strong><span>{site}</span></div>
+        <div className={styles.bodyLabel}><strong>{t("Moon")}</strong><span>{site}</span></div>
       </div>
       <Body name="Earth" position={sample.earth} />
     </div>
-    <figcaption>Height shows clearance above or below the local horizon. Sizes and spacing are illustrative.</figcaption>
+    <figcaption>{t("Height shows clearance above or below the local horizon. Sizes and spacing are illustrative.")}</figcaption>
   </figure>;
 }

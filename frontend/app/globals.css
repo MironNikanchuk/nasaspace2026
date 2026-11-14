@@ -227,8 +227,7 @@ img { display: block; max-width: 100%; }
 .atlas-site-list button { text-align: left; display: grid; gap: 0; color: var(--ink); background: none; border: 0; border-top: 1px solid var(--line); padding: 10px 8px; }
 .atlas-site-list button:hover, .atlas-site-list button[aria-pressed=true] { background: var(--panel); }
 .atlas-site-list button[aria-pressed=true] span:first-child { color: var(--accent); }
-.atlas-site-list span:last-child, .atlas-detail { color: var(--sub); font-size: 14px; }
-.atlas-detail { margin-bottom: 12px; }
+.atlas-site-list small { color: var(--sub); font-size: 13px; }
 .atlas-pair { margin-block: 16px; display: grid; gap: 6px; }
 .atlas-pair > div { display: flex; align-items: center; gap: 8px; }
 
@@ -285,4 +284,56 @@ img { display: block; max-width: 100%; }
   .result-panel, .report-method { break-inside: avoid; }
   .report-method::details-content { content-visibility: visible; }
   .elevation-chart { background: #222; }
+}
+
+@font-face {
+  font-family: B612;
+  src: url("/media/b612.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+@font-face {
+  font-family: "B612 Mono";
+  src: url("/media/b612mono.ttf") format("truetype");
+  font-weight: 400;
+  font-display: swap;
+}
+:root {
+  --sans: B612, "Instrument Sans", system-ui, sans-serif;
+  --mono: "B612 Mono", ui-monospace, monospace;
+}
+:lang(ru) { --display: Georgia, serif; }
+.time-control span, .metric-row strong, .language-select, .atlas-site-list small { font-family: var(--mono); }
+.language-select { background: var(--bg); color: var(--ink); border: 1px solid var(--line); border-radius: 6px; padding: 4px; max-width: 66px; font-size: 13px; }
+.app-utilities { justify-self: end; display: flex; align-items: center; gap: 16px; }
+.sources-content { max-width: 720px; }
+.repo-card { display: flex; gap: 16px; align-items: center; padding: 20px; border: 1px solid #606060; border-radius: 8px; }
+.repo-card > span { margin-left: auto; }
+.repo-card p { color: var(--sub); margin-top: 4px; }
+.sources-content ul { padding: 0; margin: 24px 0 0; list-style: none; }
+.sources-content li a { display: flex; justify-content: space-between; padding: 12px 0; border-bottom: 1px solid var(--line); }
+.sources-content a:hover { color: var(--accent); }
+@media (max-width: 680px) {
+  .app-nav-inner { display: flex; flex-wrap: wrap; gap: 4px 12px; padding-block: 8px; }
+  .app-nav-inner nav { order: 3; flex: 1 0 100%; justify-content: space-between; gap: 6px; }
+  .app-utilities { margin-left: auto; }
+  .nav-item { font-size: 12px; }
+}
+@media (max-width: 360px) {
+  .app-nav-inner nav .nav-item { gap: 5px; min-width: 40px; justify-content: center; }
+}
+@media (prefers-reduced-motion: no-preference) {
+  html { scroll-behavior: smooth; }
+  ::view-transition-old(root), ::view-transition-new(root) { animation-duration: 220ms; }
+}
+.workspace-entry { margin-bottom: 16px; color: var(--sub); font-size: 13px; }
+.workspace-entry a { margin-inline-start: 6px; text-decoration: underline; }
+.profile-details { display: grid; gap: 12px; margin: 0; }
+.profile-details div { display: grid; gap: 2px; }
+.profile-details dt { color: var(--sub); font-size: 13px; }
+.profile-details dd { margin: 0; overflow-wrap: anywhere; }
+
+@view-transition { navigation: auto; }
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(root), ::view-transition-new(root) { animation: none; }
 }
