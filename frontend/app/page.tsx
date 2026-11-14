@@ -118,7 +118,8 @@ export default function Landing() {
       <footer className={`${styles.wrap} ${styles.footer}`}>
         <Brand small />
         <span>NASA Space Apps Challenge 2026</span>
-        <a href="https://github.com/MironNikanchuk/nasaspace2026"><img src="/media/github-dark.svg" width="17" height="17" alt="" /> Project source</a>
+        <div className={styles.footerLinks}><Link href="/privacy">Privacy</Link>
+          <a href="https://github.com/MironNikanchuk/nasaspace2026"><img src="/media/github-dark.svg" width="17" height="17" alt="" /> Project source</a></div>
       </footer>
     </div>
   );
