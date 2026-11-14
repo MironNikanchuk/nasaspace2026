@@ -67,8 +67,8 @@ img { display: block; max-width: 100%; }
 .button-small { min-height: 36px; font-size: 13px; }
 .text-link { display: inline-flex; align-items: center; gap: 8px; color: var(--accent); font-weight: 600; text-underline-offset: 4px; }
 .text-link:hover, .app-method:hover { text-decoration: underline; }
-.skip-link { position: fixed; z-index: 10; top: 8px; left: 8px; padding: 8px 16px; background: var(--ink); color: var(--bg); transform: translateY(-200%); }
-.skip-link:focus { transform: none; }
+.skip-link { position: fixed; z-index: 10; top: 8px; left: 8px; padding: 8px 16px; background: var(--ink); color: var(--bg); opacity: 0; pointer-events: none; }
+.skip-link:focus { opacity: 1; pointer-events: auto; }
 
 .app-shell { min-height: 100vh; }
 .app-topbar { border-bottom: 1px solid var(--line); }
