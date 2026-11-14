@@ -28,7 +28,7 @@ jobs:
           docker run --detach --name lunawindow-ci \
             --env PORT=8081 --publish 127.0.0.1:8081:8081 lunawindow-api:ci
           trap 'docker logs lunawindow-ci && docker rm -f lunawindow-ci' EXIT
-          curl --fail --silent --show-error --retry 8 --retry-connrefused \
+          curl --fail --silent --show-error --retry 8 --retry-all-errors --retry-delay 1 \
             http://127.0.0.1:8081/api/v1/health
           curl --fail --silent --show-error --output /dev/null \
             --header 'Content-Type: application/json' \
