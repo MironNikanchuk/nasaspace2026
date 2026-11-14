@@ -115,3 +115,27 @@ uv run --locked ruff check .
 uv run --locked ruff format --check .
 uv run --locked python -m pytest -q
 ```
+
+## Full-stack web app
+
+The Next.js app lives in `frontend/`. It includes a GameOver landing page, side-by-side comparisons, UTC elevation plots and visibility timelines, scenario sharing, CSV export, and the [NASA Moon](https://solarsystem.nasa.gov/gltf_embed/2366/) and [Earth](https://solarsystem.nasa.gov/gltf_embed/2393/) models. The analyzer is public. Guests can save scenarios on their device. Signed-in users use a private Supabase library.
+
+With FastAPI running as described above, start the frontend:
+
+```sh
+cd frontend
+cp .env.example .env.local
+npm ci
+npm run dev
+```
+
+Open `http://localhost:3000`. When FastAPI is unreachable, the app serves bundled real results for January 7–14, 2027 UTC. Live date changes and custom coordinates require the running API. The [terrain-impact preset](http://localhost:3000/workspace?preset=terrain-impact) gives a reproducible demo.
+
+### Vercel, Cloudflare and Supabase setup
+
+1. Start FastAPI on the backend host, then expose it through a [named Cloudflare Tunnel](https://developers.cloudflare.com/tunnel/get-started/). Route a stable hostname to `http://127.0.0.1:8000`, and verify `/api/v1/health` through the tunnel. A [Quick Tunnel](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/) is suitable for a temporary rehearsal while the backend and connector are running.
+2. In the team’s Supabase project, apply `supabase/migrations/202611140001_saved_scenarios.sql`. It limits database access to each account’s own rows. Set the production site URL and allow the app’s `/account` page in Auth redirect URLs. Configure [custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp) for email confirmation outside the Supabase team.
+3. In Vercel select the Next.js framework and the `frontend` root. Set `LUNAWINDOW_API_URL` to the Cloudflare hostname, plus `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. These are the only application variables. Keep database passwords and secret keys in provider settings.
+4. Open the production app as a guest and test a date outside the bundled week. Then verify a cloud save using a confirmed account. Check the 3D atlas and test the preset with the API unavailable.
+
+Visuals are from [NASA SVS 5605](https://svs.gsfc.nasa.gov/5605/) and [NASA SVS 5228](https://svs.gsfc.nasa.gov/5228/). Icons are from [css.gg](https://iconify.design/icon-sets/gg/) (MIT) via Iconify. Geist is distributed under the SIL Open Font License. The visual polish used [unslop](https://github.com/heydamir/unslop) by Damir Sokolovsky.
