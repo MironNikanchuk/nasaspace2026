@@ -1,0 +1,253 @@
+.figure {
+  margin: 0;
+  min-width: 0;
+}
+
+.marker {
+  padding-inline: 3px;
+}
+
+.toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px 16px;
+  margin-bottom: 10px;
+}
+
+.location {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  color: var(--sub, #b8bab3);
+  font-size: 13px;
+}
+
+.location strong {
+  color: var(--ink, #edede7);
+  font-size: 14px;
+  font-weight: 550;
+}
+
+.switches {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 3px;
+  padding: 3px;
+  border: 1px solid var(--line, #2c2f2a);
+  border-radius: 5px;
+}
+
+.switches button {
+  padding: 4px 10px;
+  border: 1px solid transparent;
+  border-radius: 3px;
+  background: transparent;
+  color: var(--sub, #b8bab3);
+  font-size: 13px;
+  white-space: nowrap;
+}
+
+.switches button[aria-pressed="true"] {
+  background: #272923;
+  border-color: #373a32;
+  color: #f3f1e6;
+}
+
+.viewport {
+  position: relative;
+  min-height: 238px;
+  height: clamp(238px, 35vw, 370px);
+  overflow: hidden;
+  isolation: isolate;
+  background: #10120f;
+  border: 1px solid var(--line, #2c2f2a);
+  border-radius: 6px;
+}
+
+.globeViewport {
+  min-height: 350px;
+  height: clamp(350px, 56vw, 570px);
+  background: #10120f url('/media/moon.jpg') center / auto 77% no-repeat;
+}
+
+.globeViewport.ready {
+  background: #10120f;
+}
+
+.globeViewport .fallback {
+  background: #10120fa6;
+}
+
+.canvas,
+.fallback,
+.labels {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  display: block;
+}
+
+.canvas {
+  opacity: 0;
+}
+
+.ready .canvas {
+  opacity: 1;
+}
+
+.ready .fallback {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.labels {
+  pointer-events: none;
+}
+
+.labels[hidden] {
+  display: none;
+}
+
+.bodyLabel {
+  position: absolute;
+  transform: translate(11px, -50%);
+  white-space: nowrap;
+  padding: 2px 4px;
+  border-radius: 2px;
+  background: #10120fcc;
+  color: #eeeae1;
+  font-size: 12px;
+}
+
+.compass {
+  position: absolute;
+  left: 12px;
+  bottom: 11px;
+  padding: 4px 7px;
+  background: #11130fe8;
+  border: 1px solid #414337;
+  border-radius: 3px;
+  color: #d2d1c6;
+  font-variant-numeric: tabular-nums;
+  font-size: 12px;
+}
+
+.readings {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  border-bottom: 1px solid var(--line, #2c2f2a);
+}
+
+.reading {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
+  padding: 10px 6px 10px 0;
+}
+.reading + .reading {
+  border-left: 1px solid var(--line, #2c2f2a);
+  padding-left: 10px;
+}
+.reading strong {
+  font-size: 14px;
+  font-weight: 550;
+  color: var(--ink, #edece5);
+}
+.reading small {
+  font-size: 13px;
+  color: var(--sub, #b8bab3);
+}
+.reading b {
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.figure figcaption {
+  margin-top: 8px;
+  color: var(--sub, #b8bab3);
+  font-size: 13px;
+}
+.figure figcaption a {
+  text-decoration: underline;
+  text-underline-offset: 0.18em;
+}
+
+.marker {
+  position: absolute;
+  min-width: 24px;
+  height: 24px;
+  padding: 0 7px;
+  transform: translate(-50%, -50%);
+  pointer-events: auto;
+  text-align: center;
+  white-space: nowrap;
+  background: #1d221a;
+  color: #f0efe5;
+  border: 1px solid #dcdfc3;
+  border-radius: 3px;
+  font-size: 12px;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.marker[aria-pressed="true"] {
+  background: #e9ead9;
+  border-color: #e9ead9;
+  color: #171a14;
+  z-index: 1;
+}
+
+.marker[hidden] {
+  display: none;
+}
+
+.fallback {
+  display: grid;
+  place-items: center;
+  color: #e7e5da;
+}
+
+.fallback svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+
+.fallbackOptions {
+  display: grid;
+  gap: 6px;
+  padding: 12px;
+}
+
+.fallbackOptions button {
+  padding: 7px 10px;
+  border: 1px solid #545846;
+  border-radius: 4px;
+  background: #1b211a;
+  color: #e7e5da;
+}
+
+.fallbackOptions button[aria-pressed="true"] {
+  background: #e6e8d5;
+  color: #141711;
+}
+
+.anchor {
+  position: absolute;
+  width: 5px;
+  height: 5px;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  background: #eeebdc;
+}
+
+.leader {
+  position: absolute;
+  height: 1px;
+  transform-origin: left;
+  background: #e3dfc69c;
+}

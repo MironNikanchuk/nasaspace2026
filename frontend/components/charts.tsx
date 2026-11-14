@@ -3,7 +3,7 @@
 import { useId } from "react";
 import type { Result, Sample, Window } from "@/lib/types";
 
-const colors = { sun: "#f6cb85", earth: "#9ac5ef", both: "#e1e7ed" };
+const colors = { sun: "var(--sun)", earth: "var(--earth)", both: "var(--overlap)" };
 const tickText = new Intl.DateTimeFormat("en-GB", { month: "short", day: "numeric", timeZone: "UTC" });
 
 export function utcLabel(value: string) {
@@ -69,8 +69,9 @@ function Track({ windows, start, end, body }: { windows: Window[]; start: number
   const name = body === "both" ? "Overlap" : body === "sun" ? "Sun" : "Earth";
   const fraction = (time: string) => (Date.parse(time) - start) / (end - start) * 100;
   return <div className="track-row"><span>{name}</span><div className="track"
-    aria-label={`${name}: ${windows.length} visibility windows`}>
-    {windows.map((w) => <span key={w.start_utc} title={`${utcLabel(w.start_utc)} → ${utcLabel(w.end_utc)}`}
+    role="img" aria-label={`${name}: ${windows.length} visibility windows`}>
+    {windows.map((w) => <span key={w.start_utc}
+      title={`${w.start_utc.slice(0, 19).replace("T", " ")} → ${w.end_utc.slice(0, 19).replace("T", " ")} UTC`}
       style={{ left: `${fraction(w.start_utc)}%`, width: `${fraction(w.end_utc) - fraction(w.start_utc)}%`, backgroundColor: colors[body] }} />)}
   </div></div>;
 }

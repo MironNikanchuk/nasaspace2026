@@ -1,4 +1,4 @@
-# LunaWindow submission handoff
+# MoonSight submission handoff
 
 **Team** GameOver — Miron Nikanchuk, Topuzov Ruslan, Bekturov Shoxruz, Alixonov Amirxon
 
@@ -10,16 +10,17 @@
 
 ## Project summary
 
-LunaWindow compares candidate landing scenarios near the Moon’s south pole. Select two sites or dates to see when the centers of the Sun and Earth are above the horizon, how long their visibility overlaps, and how local terrain changes those estimates. The comparison uses JPL Horizons ephemerides and two terrain profiles built from NASA’s Lunar Orbiter Laser Altimeter data.
+MoonSight compares candidate landing scenarios near the Moon’s south pole. Select two sites or dates to see when the centers of the Sun and Earth are above the horizon, how long their visibility overlaps, and how local terrain changes those estimates. The comparison uses JPL Horizons ephemerides and two terrain profiles built from NASA’s Lunar Orbiter Laser Altimeter data.
 
 For a seven-day example on Connecting Ridge, including the modeled terrain reduces Earth-center visibility from 40.76% to 28.31%. Over that period, the longest stretch without Earth-center visibility increases from about 99.5 to 120.4 hours. The values estimate line of sight under the stated geometric and terrain models.
 
 ## 30-second demo
 
-- **0–5 s** Start at the landing page. “At the lunar south pole, hills can block a line of sight that looks open on a map.”
-- **5–13 s** Open the workspace and select **Terrain impact**. “LunaWindow compares the same site and dates with two horizon models.”
-- **13–23 s** Show the Earth visibility cards and timeline. “With data from NASA’s Lunar Orbiter, Earth visibility at Connecting Ridge drops from 40.8% to 28.3% in this example.”
-- **23–30 s** Show the overlap tracks and Share control. “Compare, save, and share a landing scenario built on NASA data.”
+- **0–5 s** Introduce MoonSight and why terrain matters near the south pole.
+- **5–10 s** Use the lunar atlas to choose two scenarios.
+- **10–17 s** Show the Connecting Ridge result for both horizon models.
+- **18–24 s** Use **Show the obstruction** to view Earth at the same time in both scenarios.
+- **24–30 s** Show the GameOver team.
 
 ## Source and tool disclosures
 

@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import "./globals.css";
 
 export const metadata: Metadata = {
-  title: { default: "LunaWindow | Lunar Landing Site Navigator", template: "%s · LunaWindow" },
+  title: { default: "MoonSight | Lunar Landing Site Navigator", template: "%s · MoonSight" },
+  icons: { icon: "/media/moonsight-mark.svg" },
   description: "Compare sunlight and direct-to-Earth visibility at the lunar south pole using NASA data.",
 };
 

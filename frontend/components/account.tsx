@@ -14,10 +14,15 @@ export function Account() {
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   return <>
-    <div className="workspace-heading"><div><h1>Account</h1><p>Keep comparisons in your private scenario library.</p></div></div>
+    <div className="workspace-heading"><div><h1>Account</h1><p>Manage sign-in and where your scenarios are saved.</p></div></div>
     {!auth ? <section className="panel account-panel"><h2>Guest workspace</h2>
-      <p>Account sign-in is unavailable on this deployment. You can still compare sites and save scenarios on this device.</p>
-      <Link className="button button-primary" href="/workspace">Open workspace <Icon name="arrow-right" /></Link>
+      <p>Guest comparisons are saved in this browser. Account sign-in is unavailable on this deployment.</p>
+      <dl className="account-details">
+        <div><dt>Time display</dt><dd>UTC</dd></div>
+        <div><dt>Data cadence</dt><dd>30 minutes</dd></div>
+        <div><dt>Scenario storage</dt><dd>This browser</dd></div>
+      </dl>
+      <Link className="button button-primary" href="/saved">View saved scenarios <Icon name="arrow-right" /></Link>
     </section> : !ready ? <p role="status" className="feedback">Checking session…</p> : user ?
       <section className="panel account-panel"><h2>Signed in</h2><p>{user.email}</p>
         <div className="action-row"><Link className="button button-primary" href="/saved">Saved scenarios</Link>

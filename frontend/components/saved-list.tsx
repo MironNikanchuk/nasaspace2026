@@ -5,6 +5,7 @@ import { useEffect, useState } from "react";
 import { deleteSaved, getSaved } from "@/lib/saved";
 import type { SavedScenario } from "@/lib/types";
 import { Icon } from "./icon";
+import { PRESETS } from "@/lib/presets";
 import { useSession } from "./session";
 
 export function SavedList() {
@@ -27,14 +28,16 @@ export function SavedList() {
   return <>
     <div className="workspace-heading"><div><h1>Saved scenarios</h1><p>{user
       ? "Comparisons saved to your account."
-      : <>Comparisons saved on this device. <Link href="/account">Sign in</Link> to save new ones to your account.</>}</p></div>
+      : <>Comparisons saved in this browser.</>}</p></div>
       <Link className="button button-primary" href="/workspace">New comparison <Icon name="arrow-right" /></Link></div>
     {error && <p className="feedback error" role="alert">{error}</p>}
     {!saved && !error && <p className="feedback" role="status">Loading saved scenarios…</p>}
     {saved?.length === 0 && <section className="panel empty"><Icon name="bookmark" width={25} /><h2>No saved scenarios</h2>
-      <p>Run a comparison and select Save to keep it here.</p><Link className="button" href="/workspace">Open comparison</Link></section>}
+      <p>Run a comparison and save it to keep it here.</p>
+      <div className="saved-presets">{PRESETS.map(({ id, label }) => <Link className="text-link" key={id} href={`/workspace?preset=${id}`}>
+        {label} <Icon name="arrow-right" width={16} /></Link>)}</div></section>}
     {saved && saved.length > 0 && <ul className="panel saved-list">{saved.map((record) =>
-      <li key={record.id}><div><strong>{record.title}</strong><p>{new Date(record.created_at).toLocaleDateString("en-GB", { timeZone: "UTC", dateStyle: "medium" })}</p></div>
+      <li key={record.id}><div><strong>{record.title}</strong><p>{record.scenarios[0].start_utc.slice(0,10)} – {record.scenarios[0].end_utc.slice(0,10)} UTC</p></div>
         <div><Link className="button button-small" href={{ pathname: "/workspace", query: { scenario: JSON.stringify(record.scenarios) } }}>Open</Link>
           <button className="button button-small" disabled={Boolean(deleting)} onClick={async () => {
             setDeleting(record.id); setError("");

@@ -1,6 +1,6 @@
-# LunaWindow
+# MoonSight
 
-LunaWindow is a FastAPI backend for comparing Sun and Earth visibility from lunar south-pole sites for the [NASA Space Apps Lunar Landing Site Navigator challenge](https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/).
+MoonSight is a FastAPI backend for comparing Sun and Earth visibility from lunar south-pole sites for the [NASA Space Apps Lunar Landing Site Navigator challenge](https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/).
 
 ## Run locally
 
@@ -118,7 +118,7 @@ uv run --locked python -m pytest -q
 
 ## Full-stack web app
 
-The Next.js app lives in `frontend/`. It includes a GameOver landing page, side-by-side comparisons, UTC elevation plots and visibility timelines, scenario sharing, CSV export, and the [NASA Moon](https://solarsystem.nasa.gov/gltf_embed/2366/) and [Earth](https://solarsystem.nasa.gov/gltf_embed/2393/) models. The analyzer is public. Guests can save scenarios on their device. Signed-in users use a private Supabase library.
+The Next.js app lives in `frontend/`. It includes a GameOver landing page, side-by-side comparisons, synchronized elevation plots, visibility timelines, shareable scenarios, CSV export, and a printable report. The [NASA Moon](https://solarsystem.nasa.gov/gltf_embed/2366/) globe lets users select a south-pole landing site and assign it to a comparison. The horizon uses the selected UTC sample and the [NASA Earth](https://solarsystem.nasa.gov/gltf_embed/2393/) model to show why a body is visible or occluded. The analyzer is public. Guests can save scenarios in their browser. Signed-in users use a private Supabase library.
 
 With FastAPI running as described above, start the frontend:
 
@@ -138,4 +138,6 @@ Open `http://localhost:3000`. When FastAPI is unreachable, the app serves bundle
 3. In Vercel select the Next.js framework and the `frontend` root. Set `LUNAWINDOW_API_URL` to the Cloudflare hostname, plus `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. These are the only application variables. Keep database passwords and secret keys in provider settings.
 4. Open the production app as a guest and test a date outside the bundled week. Then verify a cloud save using a confirmed account. Check the 3D atlas and test the preset with the API unavailable.
 
-Visuals are from [NASA SVS 5605](https://svs.gsfc.nasa.gov/5605/) and [NASA SVS 5228](https://svs.gsfc.nasa.gov/5228/). Icons are from [css.gg](https://iconify.design/icon-sets/gg/) (MIT) via Iconify. Geist is distributed under the SIL Open Font License. The visual polish used [unslop](https://github.com/heydamir/unslop) by Damir Sokolovsky.
+Native NASA models are included with web-sized textures. Site markers use east-positive lunar coordinates. The horizon renders the angle profile sampled from LOLA and uses apparent body directions from the API. Body sizes and distances in the scene are illustrative. After rebuilding the terrain profiles, copy `backend/data/terrain.json` into `frontend/data/terrain.json` to keep the scene and calculations aligned.
+
+Images are from [NASA SVS 5605](https://svs.gsfc.nasa.gov/5605/) and [NASA SVS 5228](https://svs.gsfc.nasa.gov/5228/). Icons are from [css.gg](https://iconify.design/icon-sets/gg/) (MIT) via Iconify. Source Sans 3 and Instrument Serif are distributed under the SIL Open Font License. The visual polish used [unslop](https://github.com/heydamir/unslop) by Damir Sokolovsky.

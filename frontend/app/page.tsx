@@ -2,77 +2,146 @@ import Image from "next/image";
 import Link from "next/link";
 import { Brand } from "@/components/brand";
 import { Icon } from "@/components/icon";
+import { demoComparison } from "@/lib/demo";
+import { PRESETS } from "@/lib/presets";
+import type { Result } from "@/lib/types";
+import styles from "./landing.module.css";
 
 const team = [
-  ["MN", "Miron Nikanchuk"], ["TR", "Topuzov Ruslan"],
-  ["BS", "Bekturov Shoxruz"], ["AA", "Alixonov Amirxon"],
+  "Miron Nikanchuk",
+  "Topuzov Ruslan",
+  "Bekturov Shoxruz",
+  "Alixonov Amirxon",
 ];
 
+const terrainPreset = PRESETS.find((preset) => preset.id === "terrain-impact");
+const terrainExample = terrainPreset && demoComparison(terrainPreset.scenarios);
+const exampleLink = "/workspace?preset=terrain-impact";
+const dateFormat = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric",
+  month: "short",
+  year: "numeric",
+  timeZone: "UTC",
+});
+
+function visibilityPercent(value: number) {
+  return `${(Math.round(value * 100) / 100).toFixed(2)}%`;
+}
+
+function VisibilityRow({ result }: { result: Result }) {
+  const start = Date.parse(result.start_utc);
+  const span = Date.parse(result.end_utc) - start;
+  const value = visibilityPercent(result.summary.earth_visible_percent);
+  const label = result.model.horizon === "geometric" ? "Geometric horizon" : "LOLA terrain horizon";
+
+  return (
+    <div className={styles.visibilityRow}>
+      <div><span>{label}</span><strong>{value}</strong></div>
+      <div className={styles.track} aria-hidden="true">
+        {result.windows.earth.map((window) => {
+          const left = (Date.parse(window.start_utc) - start) / span * 100;
+          const width = (Date.parse(window.end_utc) - Date.parse(window.start_utc)) / span * 100;
+          return <span key={window.start_utc} style={{ left: `${left}%`, width: `${width}%` }} />;
+        })}
+      </div>
+    </div>
+  );
+}
+
 export default function Landing() {
-  return <div className="landing">
-    <header className="landing-nav wrap">
-      <Brand />
-      <nav aria-label="Main navigation">
-        <a href="#method">Method</a>
-        <Link href="/atlas">3D atlas</Link>
-        <a href="#team">Team</a>
-      </nav>
-      <Link className="button nav-launch" href="/workspace">Open workspace <Icon name="arrow-top-right" width={16} /></Link>
-    </header>
+  return (
+    <div className={styles.landing}>
+      <a className={styles.skip} href="#main">Skip to content</a>
+      <header className={`${styles.wrap} ${styles.nav}`}>
+        <Brand />
+        <nav aria-label="Main navigation">
+          <Link href="/atlas">Lunar atlas</Link>
+          <a href="#method">Method</a>
+          <a href="#team">Team</a>
+        </nav>
+        <Link className={styles.navAction} href="/workspace">
+          Workspace <Icon name="arrow-top-right" width={16} />
+        </Link>
+      </header>
 
-    <main>
-      <section className="hero wrap" aria-labelledby="hero-title">
-        <div className="hero-visual" aria-hidden="true">
-          <div className="orbit orbit-outer" /><div className="orbit orbit-inner" />
-          <div className="moon-photo">
-            <Image src="/media/moon.jpg" alt="" fill priority sizes="(max-width: 800px) 85vw, 660px" />
+      <main id="main" tabIndex={-1}>
+        <section className={`${styles.wrap} ${styles.hero}`} aria-labelledby="hero-title">
+          <div className={styles.heroCopy}>
+            <h1 id="hero-title">Find your window <span>on the Moon.</span></h1>
+            <p>Compare sunlight and line of sight to Earth at landing sites near the lunar south pole.</p>
+            <div className={styles.actions}>
+              <Link className={styles.primary} href="/workspace">
+                Compare landing sites <Icon name="arrow-right" width={18} />
+              </Link>
+              <Link className={styles.inlineAction} href="/atlas">
+                Explore the atlas <Icon name="arrow-top-right" width={15} />
+              </Link>
+            </div>
           </div>
-          <span className="moon-indicator"><i /> Lunar south pole</span>
-        </div>
-        <div className="hero-copy">
-          <div className="eyebrow"><span /> NASA SPACE APPS CHALLENGE 2026</div>
-          <h1 id="hero-title">Find your window<br />on the Moon<span>.</span></h1>
-          <p>Compare lunar landing sites by sunlight and direct line of sight to Earth. See what changes when you move the landing date or account for terrain.</p>
-          <div className="hero-actions">
-            <Link className="button button-primary" href="/workspace">Compare landing sites <Icon name="arrow-right" width={18} /></Link>
-            <Link className="button button-secondary" href="/atlas">Explore the atlas</Link>
+          <figure className={styles.heroFigure}>
+            <div className={styles.moonVisual}>
+              <Image
+                src="/media/moon.jpg"
+                alt="Earth-facing side of the Moon with the south polar region near its lower rim"
+                fill
+                preload
+                unoptimized
+                sizes="(max-width: 760px) 90vw, (max-width: 1120px) 49vw, 590px"
+              />
+            </div>
+            <figcaption>
+              <span>The Moon</span>
+              <a href="https://svs.gsfc.nasa.gov/5605/">NASA Scientific Visualization Studio</a>
+            </figcaption>
+          </figure>
+        </section>
+
+        <section className={`${styles.wrap} ${styles.evidence}`} id="method" aria-labelledby="method-title">
+          <div className={styles.evidenceCopy}>
+            <h2 id="method-title">How terrain changes the view</h2>
+            <p>At Connecting Ridge, the modeled terrain blocks the center of Earth for longer than the geometric horizon suggests. That shortens the potential direct link.</p>
+            {terrainExample && (
+              <figure className={styles.visibility}>
+                <figcaption>
+                  <strong>Earth above the horizon</strong>
+                  <span>{dateFormat.formatRange(new Date(terrainExample.scenarios[0].start_utc), new Date(terrainExample.scenarios[0].end_utc))} UTC</span>
+                </figcaption>
+                {terrainExample.scenarios.map((result) => <VisibilityRow key={result.model.horizon} result={result} />)}
+              </figure>
+            )}
+            <Link className={styles.inlineAction} href={exampleLink}>
+              Run this comparison <Icon name="arrow-right" width={17} />
+            </Link>
           </div>
-        </div>
-        <div className="hero-footer">
-          <span><i /> LUNAR LANDING SITE NAVIGATOR</span>
-          <span>NASA / JPL HORIZONS · LRO LOLA</span>
-          <a href="https://svs.gsfc.nasa.gov/5605/">Moon image by NASA SVS <Icon name="arrow-top-right" width={14} /></a>
-        </div>
-      </section>
+          <figure className={styles.horizonFigure}>
+            <Image
+              src="/media/lunar-horizon.jpg"
+              alt="Earth visible in the black sky above a computer-rendered lunar south-pole horizon"
+              width={1024}
+              height={576}
+              sizes="(max-width: 760px) 90vw, 43vw"
+            />
+            <figcaption>
+              <span>South-pole visualization</span>
+              <a href="https://svs.gsfc.nasa.gov/5228/">NASA SVS</a>
+            </figcaption>
+          </figure>
+        </section>
 
-      <section className="landing-section wrap" id="method">
-        <div className="section-intro">
-          <p className="eyebrow"><span /> THE METHOD</p>
-          <h2>Same site. Different horizon.</h2>
-          <p>At Connecting Ridge, nearby terrain reduces the estimated time with Earth above the horizon from <strong>40.76%</strong> to <strong>28.31%</strong> during the same seven-day window.</p>
-          <Link className="text-link" href="/workspace?preset=terrain-impact">Run this comparison <Icon name="arrow-right" width={18} /></Link>
-        </div>
-        <figure className="method-figure">
-          <Image src="/media/lunar-horizon.jpg" alt="Earth above a modeled lunar south-pole horizon" width={1024} height={576} />
-          <figcaption>South-pole visualization by NASA SVS. <a href="https://svs.gsfc.nasa.gov/5228/">Image source</a></figcaption>
-        </figure>
-      </section>
+        <section className={`${styles.wrap} ${styles.team}`} id="team" aria-labelledby="team-title">
+          <div>
+            <h2 id="team-title">GameOver</h2>
+            <p>Built for the Lunar Landing Site Navigator challenge.</p>
+          </div>
+          <ul>{team.map((name) => <li key={name}>{name}</li>)}</ul>
+        </section>
+      </main>
 
-      <section className="team-section wrap" id="team">
-        <div>
-          <p className="eyebrow"><span /> THE TEAM</p>
-          <h2>GameOver</h2>
-          <p>Built for the Lunar Landing Site Navigator challenge.</p>
-        </div>
-        <ul className="team-list">{team.map(([initials, name]) =>
-          <li key={name}><span>{initials}</span>{name}</li>)}</ul>
-      </section>
-    </main>
-
-    <footer className="landing-footer wrap">
-      <Brand small />
-      <div><Link href="/workspace">Workspace</Link><Link href="/atlas">NASA 3D models</Link><Link href="/account">Account</Link></div>
-      <span>GameOver · 2026</span>
-    </footer>
-  </div>;
+      <footer className={`${styles.wrap} ${styles.footer}`}>
+        <Brand small />
+        <span>NASA Space Apps Challenge 2026</span>
+        <a href="https://github.com/MironNikanchuk/nasaspace2026">Project source <Icon name="arrow-top-right" width={15} /></a>
+      </footer>
+    </div>
+  );
 }

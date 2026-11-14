@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "./icon";
@@ -9,6 +10,11 @@ import { ElevationChart, Timeline, elevationScale, utcLabel } from "./charts";
 import { PRESETS, parsePair } from "@/lib/presets";
 import { saveScenario } from "@/lib/saved";
 import type { Catalog, Comparison, Horizon, Result, Scenario, ScenarioPair } from "@/lib/types";
+
+const MissionScene = dynamic(() => import("./mission-scene").then((module) => module.MissionScene), {
+  ssr: false,
+  loading: () => <div className="scene-placeholder" role="status">Preparing the 3D horizon…</div>,
+});
 
 function localInput(value: string) {
   return value ? new Date(value).toISOString().slice(0, 16) : "";
@@ -19,6 +25,10 @@ function fromInput(value: string) {
 function pct(value: number) {
   return `${value.toFixed(1)}%`;
 }
+
+const shortDate = new Intl.DateTimeFormat("en-GB", {
+  day: "numeric", month: "short", year: "numeric", timeZone: "UTC",
+});
 function changeScenarioSite(scenario: Scenario, id: string, catalog: Catalog): Scenario {
   if (id === "custom") return { ...scenario, site_id: undefined, horizon: "geometric",
     coordinates: { latitude_deg: -89.4632, longitude_east_deg: 222.51 } };
@@ -87,7 +97,7 @@ function csvDownload(result: Comparison) {
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
   const anchor = document.createElement("a");
   anchor.href = url;
-  anchor.download = "lunawindow-comparison.csv";
+  anchor.download = "moonsight-comparison.csv";
   anchor.click();
   setTimeout(() => URL.revokeObjectURL(url), 0);
 }
@@ -98,28 +108,59 @@ const metrics: { key: keyof Result["summary"]; label: string; color: string }[] 
   { key: "both_visible_percent", label: "Overlap", color: "overlap" },
 ];
 
-function ResultPanel({ result, index, scale }: { result: Result; index: number; scale: [number, number] }) {
-  const [active, setActive] = useState(0);
-  const selected = result.samples[active];
-  return <article className="panel result-panel">
-    <div className="panel-title"><span className="scenario-letter">{index ? "B" : "A"}</span><div>
-      <h3>{result.site.name}</h3>
-      <p>{result.model.horizon === "terrain" ? "LOLA terrain horizon" : "Geometric horizon"}</p>
-    </div></div>
+function ResultPanel({ result, index, scale, active, select }: {
+  result: Result;
+  index: number;
+  scale: [number, number];
+  active: number;
+  select: (timestamp: string) => void;
+}) {
+  const model = result.model.horizon === "terrain" ? "LOLA terrain" : "Geometric horizon";
+  return <article className="result-panel">
+    <div className="panel-title">
+      <span className="scenario-letter">{index ? "B" : "A"}</span>
+      <div><h3>{result.site.name}</h3><p>{model} · {shortDate.formatRange(new Date(result.start_utc), new Date(result.end_utc))} UTC</p></div>
+    </div>
     <div className="metric-row">{metrics.map((item) =>
       <div key={item.key}><span><i className={item.color} />{item.label}</span><strong>{pct(result.summary[item.key])}</strong></div>)}</div>
-    <div className="plot-head"><h4>Elevation</h4><span>Degrees above local horizontal</span></div>
-    <ElevationChart result={result} active={active} select={setActive} scale={scale} />
-    <label className="scrubber"><span>{utcLabel(selected.time_utc)}</span><input aria-label={`Time cursor for scenario ${index ? "B" : "A"}`}
-      type="range" min={0} max={result.samples.length - 1} value={active} onChange={(e) => setActive(Number(e.target.value))} /></label>
-    <div className="coordinates-readout"><span>Sun <b>{selected.sun.azimuth_deg.toFixed(1)}° az · {selected.sun.elevation_deg.toFixed(1)}° el</b></span>
-      <span>Earth <b>{selected.earth.azimuth_deg.toFixed(1)}° az · {selected.earth.elevation_deg.toFixed(1)}° el</b></span></div>
+    <ElevationChart result={result} active={active} select={(point) => select(result.samples[point].time_utc)} scale={scale} />
     <div className="plot-head window-head"><h4>Visibility windows</h4><span>UTC</span></div>
     <Timeline result={result} />
     <div className="outages"><span>Longest Sun outage <b>{result.summary.longest_sun_outage_hours.toFixed(1)} h</b></span>
       <span>Longest Earth outage <b>{result.summary.longest_earth_outage_hours.toFixed(1)} h</b></span></div>
-    {result.model.horizon === "terrain" && <p className="source-note">Dashed lines show terrain along each body’s azimuth.</p>}
   </article>;
+}
+
+function sampleIndex(result: Result, progress: number) {
+  const start = Date.parse(result.start_utc);
+  const target = start + (Date.parse(result.end_utc) - start) * progress;
+  let low = 0;
+  let high = result.samples.length - 1;
+  while (low < high) {
+    const mid = (low + high) >>> 1;
+    if (Date.parse(result.samples[mid].time_utc) < target) low = mid + 1;
+    else high = mid;
+  }
+  if (low === 0) return low;
+  return target - Date.parse(result.samples[low - 1].time_utc)
+    <= Date.parse(result.samples[low].time_utc) - target ? low - 1 : low;
+}
+
+function comparisonInsight(result: Comparison) {
+  const [a, b] = result.scenarios;
+  const sameSite = a.site.id === b.site.id
+    && a.site.latitude_deg === b.site.latitude_deg && a.site.longitude_east_deg === b.site.longitude_east_deg;
+  const samePeriod = a.start_utc === b.start_utc && a.end_utc === b.end_utc;
+  if (sameSite && samePeriod && a.model.horizon !== b.model.horizon) {
+    const [geometric, terrain] = a.model.horizon === "geometric" ? [a, b] : [b, a];
+    const change = terrain.summary.earth_visible_percent - geometric.summary.earth_visible_percent;
+    if (Math.abs(change) < .05) return "Earth visibility is the same with both horizon models at this precision.";
+    return `At ${a.site.name}, terrain ${change < 0 ? "reduces" : "increases"} Earth visibility from ${pct(geometric.summary.earth_visible_percent)} to ${pct(terrain.summary.earth_visible_percent)}.`;
+  }
+  const change = a.summary.both_visible_percent - b.summary.both_visible_percent;
+  if (Math.abs(change) < .05) return `Both scenarios give ${pct(a.summary.both_visible_percent)} simultaneous Sun and Earth visibility at this precision.`;
+  const winner = change > 0 ? "A" : "B";
+  return `Scenario ${winner} has ${Math.abs(change).toFixed(1)} percentage points more simultaneous Sun and Earth visibility.`;
 }
 
 export function Workspace({ initial }: { initial: ScenarioPair }) {
@@ -132,7 +173,11 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
   const [notice, setNotice] = useState("");
   const [saveOpen, setSaveOpen] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [progress, setProgress] = useState(0);
+  const [view, setView] = useState<0 | 1>(0);
+  const [showScene, setShowScene] = useState(false);
   const activeRequest = useRef<AbortController | null>(null);
+  const horizonDetails = useRef<HTMLDetailsElement>(null);
   const router = useRouter();
   const { user, ready } = useSession();
 
@@ -147,6 +192,8 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
     try {
       setResult(await compare(scenarios, controller.signal));
       setCompared(scenarios);
+      setProgress(0);
+      setView(0);
     } catch (issue) {
       if (!controller.signal.aborted) setError(issue instanceof Error ? issue.message : "Comparison failed");
     } finally {
@@ -176,6 +223,13 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
 
   const dirty = JSON.stringify(pair) !== JSON.stringify(compared);
   const chartScale = result ? elevationScale(result.scenarios) : undefined;
+  const indices = result?.scenarios.map((scenario) => sampleIndex(scenario, progress));
+  const timeSteps = result ? Math.max(...result.scenarios.map((scenario) => scenario.samples.length - 1)) : 1;
+  const samePeriod = result && result.scenarios[0].start_utc === result.scenarios[1].start_utc
+    && result.scenarios[0].end_utc === result.scenarios[1].end_utc;
+  const sceneResult = result?.scenarios[view];
+  const sceneSample = sceneResult && indices ? sceneResult.samples[indices[view]] : undefined;
+  const terrainEffect = result && samePeriod ? terrainExampleSample(result.scenarios) : undefined;
   async function onSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const title = String(new FormData(event.currentTarget).get("title") ?? "").trim();
@@ -194,10 +248,9 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
 
   return <>
     <div className="workspace-heading"><div>
-      <p className="eyebrow"><span /> LUNAR SOUTH POLE</p>
       <h1>Compare landing sites</h1>
-      <p>Explore sunlight, line of sight to Earth, and when both are available.</p>
-    </div><div className="availability"><i />{catalog?.demo_only ? "Demo dataset" : catalog ? "API connected" : "Loading catalog"}</div></div>
+      <p>Find when sunlight and a direct line of sight to Earth overlap.</p>
+    </div><Link href="/atlas" className="text-link">Choose from the lunar atlas <Icon name="arrow-right" width={16} /></Link></div>
 
     <div className="preset-bar" aria-label="Comparison presets"><span>Presets</span>
       {PRESETS.map((preset) => <button type="button" className="button button-small" key={preset.id}
@@ -221,10 +274,11 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
     {error && <p className="feedback error" role="alert">{error}</p>}
     {loading && !result && <p className="feedback" role="status">Loading comparison…</p>}
     {result && <section className="results" aria-label="Comparison results" aria-busy={loading}>
-      <header className="results-header"><div><h2>Comparison</h2><p>{result.demo_only ? "Bundled NASA results" : "Calculated from NASA data"}
-        {dirty ? " · Parameters changed" : ""}</p></div>
+      <header className="results-header"><div><h2>Results</h2><p>{result.demo_only ? "Saved NASA dataset" : "NASA ephemerides"}
+        {dirty ? " · Run again to apply your changes" : ""}</p></div>
         <div className="result-actions">
-          <button className="button button-small" onClick={() => csvDownload(result)}><Icon name="software-download" />Export CSV</button>
+          <button className="button button-small" onClick={() => csvDownload(result)}><Icon name="software-download" />CSV</button>
+          <button className="button button-small" onClick={() => window.print()}><Icon name="file-document" />Print report</button>
           <button className="button button-small" onClick={async () => {
             const url = new URL("/workspace", window.location.origin);
             url.searchParams.set("scenario", JSON.stringify(compared));
@@ -238,12 +292,70 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
       {saveOpen && <form className="panel save-form" onSubmit={onSave}>
         <label className="field">Scenario title<input name="title" maxLength={100} required autoFocus defaultValue={`${result.scenarios[0].site.name} / ${result.scenarios[1].site.name}`} /></label>
         <button className="button button-primary" disabled={saving}>{saving ? "Saving…" : "Save scenario"}</button>
-        {!user && <span>Saved on this device. <Link href="/account">Sign in for cloud saves.</Link></span>}
+        {!user && <span>Guest saves stay on this device.</span>}
       </form>}
       {notice && <p className="feedback" role="status">{notice}</p>}
-      <div className="scenario-grid">{chartScale && result.scenarios.map((scenario, index) =>
-        <ResultPanel key={`${index}/${scenario.site.id}/${scenario.site.latitude_deg}/${scenario.site.longitude_east_deg}/${scenario.start_utc}/${scenario.end_utc}/${scenario.model.horizon}`} result={scenario} index={index} scale={chartScale} />)}</div>
-      <p className="dashboard-note">Visibility uses the center of each body. Earth visibility estimates a potential line of sight. <Link href="/#method">Method and sources</Link></p>
+      <div className="insight">
+        <p aria-live="polite">{comparisonInsight(result)}</p>
+        {terrainEffect && <button className="insight-link" type="button" onClick={() => {
+          const scenario = result.scenarios[terrainEffect.view];
+          const timestamp = Date.parse(terrainEffect.timestamp);
+          setView(terrainEffect.view);
+          setProgress((timestamp - Date.parse(scenario.start_utc))
+            / (Date.parse(scenario.end_utc) - Date.parse(scenario.start_utc)));
+          setShowScene(true);
+          if (horizonDetails.current) {
+            horizonDetails.current.open = true;
+            horizonDetails.current.scrollIntoView({ block: "nearest" });
+            horizonDetails.current.querySelector("summary")?.focus({ preventScroll: true });
+          }
+        }}>Show the obstruction <Icon name="arrow-down" width={16} /></button>}
+      </div>
+      {indices && <div className="time-control">
+        <div><label htmlFor="comparison-time">{samePeriod ? "Time (UTC)" : "Progress through each period"}</label>
+          <span>{samePeriod ? utcLabel(result.scenarios[0].samples[indices[0]].time_utc)
+            : `A · ${utcLabel(result.scenarios[0].samples[indices[0]].time_utc)} / B · ${utcLabel(result.scenarios[1].samples[indices[1]].time_utc)}`}</span></div>
+        <input type="range" id="comparison-time" min={0} max={timeSteps} value={Math.round(progress * timeSteps)}
+          onChange={(event) => setProgress(Number(event.target.value) / timeSteps)}
+          aria-valuetext={samePeriod ? utcLabel(result.scenarios[0].samples[indices[0]].time_utc) : `${Math.round(progress * 100)} percent`} />
+      </div>}
+      <div className="scenario-grid comparison-grid">{chartScale && indices && result.scenarios.map((scenario, index) =>
+        <ResultPanel key={index} result={scenario} index={index} scale={chartScale} active={indices[index]}
+          select={(timestamp) => setProgress((Date.parse(timestamp) - Date.parse(scenario.start_utc))
+            / (Date.parse(scenario.end_utc) - Date.parse(scenario.start_utc)))} />)}</div>
+      <details className="horizon-details" ref={horizonDetails} onToggle={(event) => { if (event.currentTarget.open) setShowScene(true); }}>
+        <summary>Inspect the horizon in 3D</summary>
+        <div className="horizon-head"><div className="segmented" aria-label="3D scenario">
+          <button type="button" aria-pressed={view === 0} onClick={() => setView(0)}>Scenario A</button>
+          <button type="button" aria-pressed={view === 1} onClick={() => setView(1)}>Scenario B</button>
+        </div></div>
+        {showScene && sceneResult && sceneSample && <>
+          <div className="scene-time"><label htmlFor="horizon-time">Horizon time</label>
+            <input type="range" id="horizon-time" min={0} max={timeSteps} value={Math.round(progress * timeSteps)}
+              onChange={(event) => setProgress(Number(event.target.value) / timeSteps)}
+              aria-valuetext={utcLabel(sceneSample.time_utc)} />
+            <output htmlFor="horizon-time">{utcLabel(sceneSample.time_utc)}</output>
+          </div>
+          <MissionScene result={sceneResult} sample={sceneSample} />
+        </>}
+      </details>
+      <section className="report-method" aria-label="Calculation method">
+        <h3>Data and assumptions</h3>
+        <p>Visibility uses the center of each body. Earth visibility estimates a line of sight. Angles are in degrees and time is UTC.</p>
+        <p>{result.dataset.ephemeris} · {result.dataset.step_minutes}-minute samples · {result.dataset.coordinate_frame}
+          {result.scenarios.some((scenario) => scenario.model.horizon === "terrain") && " · LOLA terrain, up to 45 km"}</p>
+        <p><a href={result.dataset.ephemeris_source_url}>NASA JPL Horizons</a> · <a href="https://pgda.gsfc.nasa.gov/products/90">NASA LOLA elevation model</a></p>
+      </section>
     </section>}
   </>;
+}
+
+function terrainExampleSample([a, b]: [Result, Result]) {
+  if (a.site.id !== b.site.id || a.model.horizon === b.model.horizon) return;
+  const view = a.model.horizon === "terrain" ? 0 : 1;
+  const [terrain, geometric] = view === 0 ? [a, b] : [b, a];
+  const clearTimes = new Set(geometric.samples.filter((sample) => sample.earth.above_horizon)
+    .map((sample) => sample.time_utc));
+  const blocked = terrain.samples.filter((sample) => !sample.earth.above_horizon && clearTimes.has(sample.time_utc));
+  if (blocked.length) return { view, timestamp: blocked[Math.floor(blocked.length / 2)].time_utc } as const;
 }

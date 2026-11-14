@@ -13,5 +13,5 @@ export default async function WorkspacePage({ searchParams }: {
   if (query.scenario && query.scenario.length < 2048) {
     try { initial = parsePair(JSON.parse(query.scenario)) ?? initial; } catch { /* invalid link */ }
   }
-  return <Shell current="workspace" title="Comparison"><Workspace initial={initial} /></Shell>;
+  return <Shell current="workspace" title="Comparison"><Workspace key={JSON.stringify(initial)} initial={initial} /></Shell>;
 }
