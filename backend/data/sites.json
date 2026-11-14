@@ -1,0 +1,26 @@
+[
+  {
+    "id": "connecting-ridge",
+    "name": "Connecting Ridge",
+    "latitude_deg": -89.4632,
+    "longitude_east_deg": 222.51,
+    "observer_altitude_km": 0,
+    "source_site_id": "R01"
+  },
+  {
+    "id": "shackleton-rim",
+    "name": "Shackleton Rim",
+    "latitude_deg": -89.7668,
+    "longitude_east_deg": 188.13,
+    "observer_altitude_km": 0,
+    "source_site_id": "R04"
+  },
+  {
+    "id": "malapert-massif",
+    "name": "Malapert Massif",
+    "latitude_deg": -85.9948,
+    "longitude_east_deg": 359.76422,
+    "observer_altitude_km": 0,
+    "source_site_id": "R23"
+  }
+]
