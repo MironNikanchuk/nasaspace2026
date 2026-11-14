@@ -1,4 +1,4 @@
-import Image from "next/image";
+import { HeroMoon, TerrainAnimation } from "@/components/landing-scenes";
 import Link from "next/link";
 import { Brand } from "@/components/brand";
 import { Icon } from "@/components/icon";
@@ -59,13 +59,16 @@ export default function Landing() {
           <a href="#method">Method</a>
           <a href="#team">Team</a>
         </nav>
-        <Link className={styles.navAction} href="/workspace">
-          Workspace <Icon name="arrow-top-right" width={16} />
-        </Link>
+        <div className={styles.navActions}>
+          <Link href="/account">Account</Link>
+          <Link className={styles.navAction} href="/workspace">
+            Workspace <Icon name="arrow-top-right" width={16} />
+          </Link>
+        </div>
       </header>
 
       <main id="main" tabIndex={-1}>
-        <section className={`${styles.wrap} ${styles.hero}`} aria-labelledby="hero-title">
+        <div className={styles.heroSpace}><section className={`${styles.wrap} ${styles.hero}`} aria-labelledby="hero-title">
           <div className={styles.heroCopy}>
             <h1 id="hero-title">Find your window <span>on the Moon.</span></h1>
             <p>Compare sunlight and line of sight to Earth at landing sites near the lunar south pole.</p>
@@ -78,23 +81,8 @@ export default function Landing() {
               </Link>
             </div>
           </div>
-          <figure className={styles.heroFigure}>
-            <div className={styles.moonVisual}>
-              <Image
-                src="/media/moon.jpg"
-                alt="Earth-facing side of the Moon with the south polar region near its lower rim"
-                fill
-                preload
-                unoptimized
-                sizes="(max-width: 760px) 90vw, (max-width: 1120px) 49vw, 590px"
-              />
-            </div>
-            <figcaption>
-              <span>The Moon</span>
-              <a href="https://svs.gsfc.nasa.gov/5605/">NASA Scientific Visualization Studio</a>
-            </figcaption>
-          </figure>
-        </section>
+          <div className={styles.heroFigure}><HeroMoon /></div>
+        </section></div>
 
         <section className={`${styles.wrap} ${styles.evidence}`} id="method" aria-labelledby="method-title">
           <div className={styles.evidenceCopy}>
@@ -113,19 +101,9 @@ export default function Landing() {
               Run this comparison <Icon name="arrow-right" width={17} />
             </Link>
           </div>
-          <figure className={styles.horizonFigure}>
-            <Image
-              src="/media/lunar-horizon.jpg"
-              alt="Earth visible in the black sky above a computer-rendered lunar south-pole horizon"
-              width={1024}
-              height={576}
-              sizes="(max-width: 760px) 90vw, 43vw"
-            />
-            <figcaption>
-              <span>South-pole visualization</span>
-              <a href="https://svs.gsfc.nasa.gov/5228/">NASA SVS</a>
-            </figcaption>
-          </figure>
+          {terrainExample && <TerrainAnimation frames={terrainExample.scenarios[1].samples
+            .filter((sample) => sample.time_utc >= "2027-01-10" && sample.time_utc < "2027-01-13")
+            .map((sample) => ({ time: sample.time_utc, earth: sample.earth }))} />}
         </section>
 
         <section className={`${styles.wrap} ${styles.team}`} id="team" aria-labelledby="team-title">

@@ -187,6 +187,7 @@ img { display: block; max-width: 100%; }
 .account-panel h2, .empty h2 { font-size: 23px; }
 .account-panel p, .empty p, .saved-list p { color: var(--sub); }
 .account-form { display: grid; gap: 12px; }
+.account-link { border: 0; background: none; padding: 0; justify-self: start; }
 .account-details { margin: 0; }
 .account-details div { display: flex; justify-content: space-between; gap: 8px; padding: 8px 0; border-top: 1px solid var(--line); }
 .account-details dd { margin: 0; }

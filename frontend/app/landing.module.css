@@ -51,6 +51,19 @@
   justify-self: start;
 }
 
+.navActions {
+  display: flex;
+  align-items: center;
+  justify-self: end;
+  gap: clamp(12px, 2vw, 28px);
+  white-space: nowrap;
+  font-size: 0.875rem;
+}
+
+.navActions > a:first-child {
+  color: var(--soft);
+}
+
 .navAction {
   min-height: 42px;
   display: inline-flex;
@@ -61,7 +74,6 @@
 
 .nav a:hover,
 .heroFigure a:hover,
-.horizonFigure a:hover,
 .footer a:hover {
   color: var(--cold);
 }
@@ -143,7 +155,6 @@
 
 .inlineAction:hover,
 .heroFigure a:hover,
-.horizonFigure a:hover,
 .footer > a:last-child:hover {
   text-decoration: underline;
   text-underline-offset: 4px;
@@ -153,21 +164,7 @@
   min-width: 0;
 }
 
-.moonVisual {
-  position: relative;
-  aspect-ratio: 1;
-  width: 100%;
-  overflow: hidden;
-}
-
-.moonVisual img {
-  object-fit: contain;
-  mix-blend-mode: screen;
-  filter: saturate(.22) brightness(.85) contrast(1.06);
-}
-
-.heroFigure figcaption,
-.horizonFigure figcaption {
+.heroFigure figcaption {
   display: flex;
   flex-wrap: wrap;
   justify-content: space-between;
@@ -261,17 +258,6 @@
   background: #e8e7e1;
 }
 
-.horizonFigure img {
-  display: block;
-  width: 100%;
-  height: auto;
-  border: 1px solid var(--edge);
-}
-
-.horizonFigure figcaption {
-  border-top: 0;
-}
-
 .team {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -329,7 +315,8 @@
   }
 
   .nav {
-    grid-template-columns: 1fr 1fr;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
     min-height: 60px;
   }
 
@@ -384,3 +371,59 @@
     grid-row: 2;
   }
 }
+
+.heroSpace {
+  background: linear-gradient(90deg, #0e1012 5%, #0a1019a0 64%, #07101d30),
+    url("/media/nasa-starfield.jpg") 65% 52% / cover no-repeat;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .heroCopy { animation: arrival 640ms cubic-bezier(.2,.7,.2,1) both; }
+  .heroFigure { animation: arrival 860ms cubic-bezier(.2,.7,.2,1) both; }
+  .earthMotion { transition: transform 125ms linear; }
+}
+@keyframes arrival {
+  from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+.moonPoster {
+  aspect-ratio: 1;
+  display: grid;
+  align-items: end;
+  justify-items: center;
+  padding-bottom: 12px;
+  color: var(--sub);
+  background: url("/media/moon.jpg") center / contain no-repeat;
+}
+.terrainDemo {
+  min-width: 0;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #121716;
+  overflow: hidden;
+}
+.terrainHead, .terrainControls, .terrainReadings {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px 12px;
+  padding: 10px 14px;
+}
+.terrainHead { border-bottom: 1px solid var(--line); }
+.visible { color: #b9e0ff; }
+.occluded { color: #f0c792; }
+.terrainSky {
+  display: block;
+  width: 100%;
+  background: linear-gradient(#080d14b4, #0f181c9c), url("/media/nasa-starfield.jpg") center / cover;
+}
+.terrainReadings {
+  color: var(--sub);
+  border-bottom: 1px solid var(--line);
+  font-size: 14px;
+}
+.terrainReadings strong { color: var(--ink); font-variant-numeric: tabular-nums; }
+.terrainTime { display: flex; gap: 12px; flex-wrap: wrap; padding: 0 14px 10px; font-size: 14px; color: var(--sub); }
+.terrainTime input { flex: 1; min-width: 104px; accent-color: var(--accent); }
+.terrainDemo figcaption { padding: 8px 14px; border-top: 1px solid var(--line); font-size: 13px; color: var(--sub); }
+.terrainDemo figcaption a { text-decoration: underline; text-underline-offset: 3px; }

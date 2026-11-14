@@ -2,7 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import {
-  AmbientLight, BufferGeometry, DirectionalLight, DoubleSide, Float32BufferAttribute,
+  AmbientLight, BufferGeometry, Color, DirectionalLight, DoubleSide, Float32BufferAttribute,
   Group, Line, LineBasicMaterial, LineDashedMaterial, LineLoop, Mesh, MeshBasicMaterial, MeshStandardMaterial,
   OrthographicCamera, PerspectiveCamera, Scene, SphereGeometry, SRGBColorSpace, TextureLoader, Vector3,
 } from "three";
@@ -10,6 +10,7 @@ import {
   circlePoints, disposeScene, loadPlanet, localDirection, moonDirection,
   planetRenderer, positionDirection, terrainProfile,
 } from "@/lib/lunar-scene";
+import { connectCamera, type CameraFrame } from "@/lib/camera-motion";
 import type { Result, Sample, Site } from "@/lib/types";
 import styles from "./mission-scene.module.css";
 
@@ -21,6 +22,7 @@ const SKY_RADIUS = 21;
 const HORIZON_RADIUS = 11;
 const MOON_ASSET = "/media/nasa-moon.glb";
 const EARTH_ASSET = "/media/nasa-earth.glb";
+const HOME_CAMERA: CameraFrame = { yaw: 0, pitch: 0, zoom: 1, x: 0, y: 0 };
 const LOLA_ASSET = "/media/lola-pole.webp";
 
 type Body = typeof BODIES[number];
@@ -93,10 +95,14 @@ function makeHorizon(profile?: readonly number[]) {
     return [...position, ...base, ...next, ...next, ...base, ...nextBase];
   });
   geometry.setAttribute("position", new Float32BufferAttribute(faces, 3));
+  const edgeColor = new Color("#3e4541");
+  const baseColor = new Color("#141916");
+  const colors = edge.flatMap(() => [...edgeColor, ...baseColor, ...edgeColor, ...edgeColor, ...baseColor, ...baseColor]);
+  geometry.setAttribute("color", new Float32BufferAttribute(colors, 3));
   const group = new Group();
   group.add(
-    new Mesh(geometry, new MeshBasicMaterial({ color: "#232620", side: DoubleSide })),
-    new LineLoop(new BufferGeometry().setFromPoints(edge), new LineBasicMaterial({ color: "#a1a595" })),
+    new Mesh(geometry, new MeshBasicMaterial({ vertexColors: true, side: DoubleSide })),
+    new LineLoop(new BufferGeometry().setFromPoints(edge), new LineBasicMaterial({ color: "#d3d9cf" })),
   );
   return group;
 }
@@ -112,7 +118,7 @@ function setLine(line: Line, a: Vector3, b: Vector3) {
 function occlusionMarker(color: string) {
   const points = Array.from({ length: 41 }, (_, index) => {
     const angle = index / 40 * 2 * Math.PI;
-    return new Vector3(.37 * Math.cos(angle), .37 * Math.sin(angle), 0);
+    return new Vector3(.62 * Math.cos(angle), .62 * Math.sin(angle), 0);
   });
   const marker = new Line(
     new BufferGeometry().setFromPoints(points),
@@ -138,6 +144,9 @@ export function MissionScene({ result, sample }: { result: Result; sample: Sampl
   const [focus, setFocus] = useState<Body>("earth");
   const [webgl, setWebgl] = useState(false);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const surface = useRef<HTMLDivElement>(null);
+  const controls = useRef<ReturnType<typeof connectCamera> | null>(null);
+  const cameraFrame = useRef(HOME_CAMERA);
   const labels = useRef<Partial<Record<Body, HTMLSpanElement>>>({});
   const redraw = useRef<(() => void) | undefined>(undefined);
   const state = useRef({ sample, focus });
@@ -145,24 +154,26 @@ export function MissionScene({ result, sample }: { result: Result; sample: Sampl
 
   useEffect(() => {
     const element = canvas.current;
-    if (!element) return;
+    if (!element || !surface.current) return;
     const renderer = planetRenderer(element);
     if (!renderer) return;
+    cameraFrame.current = HOME_CAMERA;
     let closed = false;
     const scene = new Scene();
     const camera = new PerspectiveCamera(43, 1, .05, 80);
     const light = new DirectionalLight("#fff4db", 2.6);
-    scene.add(new AmbientLight("#b3c9e2", .35), light, makeHorizon(profile));
+    scene.add(new AmbientLight("#b3c9e2", 1.2), light, makeHorizon(profile));
     [15, 0, -15].forEach((elevation) => {
-      const material = new LineBasicMaterial({ color: "#73796d", opacity: elevation ? .19 : .55, transparent: true, depthTest: false });
+      const material = new LineDashedMaterial({ color: "#9aa59c", opacity: elevation ? .22 : .62, transparent: true, depthTest: false, dashSize: .12, gapSize: .1 });
       const ring = new LineLoop(new BufferGeometry().setFromPoints(circlePoints(12, elevation)), material);
+      ring.computeLineDistances();
       ring.renderOrder = 2;
       scene.add(ring);
     });
 
-    const sun = new Mesh(new SphereGeometry(.3, 24, 16), new MeshBasicMaterial({ color: SUN_COLOR }));
+    const sun = new Mesh(new SphereGeometry(.56, 24, 16), new MeshBasicMaterial({ color: SUN_COLOR }));
     const earth = new Group();
-    const placeholder = new Mesh(new SphereGeometry(.48, 26, 18), new MeshStandardMaterial({ color: EARTH_COLOR, roughness: 1 }));
+    const placeholder = new Mesh(new SphereGeometry(.77, 26, 18), new MeshStandardMaterial({ color: EARTH_COLOR, roughness: 1 }));
     earth.add(placeholder);
     scene.add(sun, earth);
 
@@ -177,10 +188,16 @@ export function MissionScene({ result, sample }: { result: Result; sample: Sampl
     const blocked = [occlusionMarker(SUN_COLOR), occlusionMarker(EARTH_COLOR)];
     scene.add(...blocked);
 
+    const compass = surface.current.querySelector<HTMLElement>("[data-compass]");
     const draw = () => {
       const { sample: current, focus: target } = state.current;
       const { azimuth_deg: az, elevation_deg: el, horizon_elevation_deg: edge } = current[target];
-      camera.lookAt(localDirection(az, (el + edge) / 2));
+      const { yaw, pitch, zoom } = cameraFrame.current;
+      const heading = az - yaw;
+      camera.fov = Math.max(30, Math.abs(el - edge) + 9) / zoom;
+      camera.updateProjectionMatrix();
+      camera.lookAt(localDirection(heading, Math.max(-80, Math.min(80, (el + edge) / 2 + pitch))));
+      if (compass) compass.textContent = `${((Math.round(heading) % 360) + 360) % 360}° az`;
       camera.updateMatrixWorld();
       sun.position.copy(positionDirection(current.sun, SKY_RADIUS));
       earth.position.copy(positionDirection(current.earth, SKY_RADIUS));
@@ -204,6 +221,11 @@ export function MissionScene({ result, sample }: { result: Result; sample: Sampl
       renderer.render(scene, camera);
     };
     redraw.current = draw;
+    const interaction = connectCamera(surface.current, (frame) => {
+      cameraFrame.current = frame;
+      draw();
+    });
+    controls.current = interaction;
     const resize = () => {
       const { width, height } = element.getBoundingClientRect();
       if (width <= 0 || height <= 0) return;
@@ -219,7 +241,7 @@ export function MissionScene({ result, sample }: { result: Result; sample: Sampl
     resize();
     setWebgl(true);
 
-    void loadPlanet(EARTH_ASSET, .51).then((planet) => {
+    void loadPlanet(EARTH_ASSET, .8).then((planet) => {
       if (closed) { disposeScene(planet); return; }
       earth.remove(placeholder);
       disposeScene(placeholder);
@@ -229,6 +251,8 @@ export function MissionScene({ result, sample }: { result: Result; sample: Sampl
 
     return () => {
       closed = true;
+      interaction.dispose();
+      controls.current = null;
       observer.disconnect();
       element.removeEventListener("webglcontextlost", unavailable);
       redraw.current = undefined;
@@ -247,10 +271,12 @@ export function MissionScene({ result, sample }: { result: Result; sample: Sampl
       <div className={styles.location}><strong>Horizon view</strong><span>{sample.time_utc.slice(0, 16).replace("T", " ")} UTC · {result.site.name}</span></div>
       <div className={styles.switches} aria-label="Point camera toward">
         {BODIES.map((body) => <button key={body} type="button" aria-pressed={focus === body}
-          onClick={() => setFocus(body)}>{BODY_NAMES[body]}</button>)}
+          onClick={() => { setFocus(body); controls.current?.reset(); }}>{BODY_NAMES[body]}</button>)}
+        {webgl && <button type="button" onClick={() => controls.current?.reset()}>Recenter</button>}
       </div>
     </div>
-    <div className={`${styles.viewport} ${webgl ? styles.ready : ""}`}>
+    <div ref={surface} className={`${styles.viewport} ${styles.sky} ${webgl ? styles.ready : ""}`}
+      tabIndex={webgl ? 0 : undefined} role="group" aria-label="Horizon camera. Drag or use arrow keys to look around. Plus and minus zoom.">
       <div className={styles.fallback}>
         <SkyDiagram sample={sample} focus={focus} profile={profile} />
       </div>
@@ -262,7 +288,21 @@ export function MissionScene({ result, sample }: { result: Result; sample: Sampl
           {BODY_NAMES[body]}{sample[body].above_horizon ? "" : " · below horizon"}
         </span>)}
       </div>
-      <span className={styles.compass}>{Math.round(sample[focus].azimuth_deg) % 360}° az</span>
+      <span className={styles.compass} data-compass>{Math.round(sample[focus].azimuth_deg) % 360}° az</span>
+      <div className={styles.horizonStatus}>
+        <strong>{BODY_NAMES[focus]} {sample[focus].above_horizon ? "visible" : "below horizon"}</strong>
+        <span>{sample[focus].elevation_deg.toFixed(2)}° elevation · {sample[focus].horizon_elevation_deg.toFixed(2)}° horizon</span>
+      </div>
+      {webgl && <div className={styles.cameraTools}>
+        <button type="button" aria-label="Zoom in" onClick={() => controls.current?.zoom(1.24)}>+</button>
+        <button type="button" aria-label="Zoom out" onClick={() => controls.current?.zoom(1 / 1.24)}>−</button>
+      </div>}
+    </div>
+    <div className={styles.sceneKey}>
+      <span><b className={styles.lineKey} />{profile ? "LOLA terrain" : "Geometric horizon"}</span>
+      {profile && <span><b className={styles.zeroKey} />0° horizontal</span>}
+      <span><b className={styles.hiddenKey} />Body hidden by the horizon</span>
+      {webgl && <span>Drag to look around · focus to zoom</span>}
     </div>
     <div className={styles.readings}>{BODIES.map((body) => <BodyReading key={body} body={body} sample={sample} />)}</div>
     <figcaption>{profile ? "NASA LOLA angular horizon" : "Geometric horizon at 0°"} · Body sizes and distances are illustrative</figcaption>
@@ -308,13 +348,18 @@ function radialCoordinates(sites: Site[]) {
   }));
 }
 
-export function LunarGlobe({ sites, selectedId, onSelect, assignments }: {
+export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = false }: {
   sites: Site[]; selectedId?: string; onSelect?: (id: string) => void;
   assignments?: readonly [string | undefined, string | undefined];
+  hero?: boolean;
 }) {
-  const [view, setView] = useState<GlobeView>("pole");
+  const [view, setView] = useState<GlobeView>(hero ? "moon" : "pole");
   const [webgl, setWebgl] = useState(false);
+  const [panning, setPanning] = useState(false);
   const canvas = useRef<HTMLCanvasElement>(null);
+  const surface = useRef<HTMLDivElement>(null);
+  const controls = useRef<ReturnType<typeof connectCamera> | null>(null);
+  const cameraFrame = useRef(HOME_CAMERA);
   const tokens = useRef<Record<string, HTMLButtonElement | null>>({});
   const anchors = useRef<Record<string, HTMLSpanElement | null>>({});
   const leaders = useRef<Record<string, HTMLSpanElement | null>>({});
@@ -324,7 +369,7 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments }: {
 
   useEffect(() => {
     const element = canvas.current;
-    if (!element) return;
+    if (!element || !surface.current) return;
     const renderer = planetRenderer(element);
     if (!renderer) return;
     let closed = false;
@@ -354,14 +399,19 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments }: {
       const { width, height } = element.getBoundingClientRect();
       if (width <= 0 || height <= 0) return;
       const aspect = width / height;
-      const vertical = pole ? .092 : Math.max(1.19, 1.12 / aspect);
+      const { yaw, pitch, zoom, x, y } = cameraFrame.current;
+      const vertical = (pole ? .092 : Math.max(1.16, 1.12 / aspect)) / zoom;
       const horizontal = vertical * aspect;
-      camera.left = -horizontal;
-      camera.right = horizontal;
-      camera.top = vertical;
-      camera.bottom = -vertical;
-      camera.position.copy(pole ? new Vector3(0, -4, 0) : moonDirection(-24, 16, 4));
-      camera.up.copy(pole ? new Vector3(-1, 0, 0) : new Vector3(0, 1, 0));
+      camera.left = -horizontal - x * horizontal * 2;
+      camera.right = horizontal - x * horizontal * 2;
+      camera.top = vertical + y * vertical * 2;
+      camera.bottom = -vertical + y * vertical * 2;
+      const latitude = pole ? -90 + Math.min(35, Math.abs(pitch) / 3) : Math.max(-87, Math.min(87, -24 + pitch));
+      const longitude = (pole ? (pitch > 0 ? 180 : 0) : 16) - yaw;
+      camera.position.copy(moonDirection(latitude, longitude, 4));
+      camera.up.copy(pole
+        ? moonDirection(0, -yaw)
+        : new Vector3(0, 1, 0));
       camera.lookAt(0, 0, 0);
       camera.updateProjectionMatrix();
       camera.updateMatrixWorld();
@@ -398,6 +448,11 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments }: {
       renderer.render(scene, camera);
     };
     redraw.current = draw;
+    const interaction = connectCamera(surface.current, (frame) => {
+      cameraFrame.current = frame;
+      draw();
+    }, { pan: true });
+    controls.current = interaction;
     const resize = () => {
       const { width, height } = element.getBoundingClientRect();
       if (width <= 0 || height <= 0) return;
@@ -415,7 +470,7 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments }: {
       resize();
       setWebgl(true);
     }).catch(() => { /* Keep the map fallback and site controls accessible. */ });
-    void new TextureLoader().loadAsync(LOLA_ASSET).then((texture) => {
+    if (!hero) void new TextureLoader().loadAsync(LOLA_ASSET).then((texture) => {
       if (closed) { texture.dispose(); return; }
       texture.colorSpace = SRGBColorSpace;
       polarMap.material.map = texture;
@@ -425,13 +480,15 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments }: {
 
     return () => {
       closed = true;
+      interaction.dispose();
+      controls.current = null;
       observer.disconnect();
       element.removeEventListener("webglcontextlost", unavailable);
       redraw.current = undefined;
       disposeScene(scene);
       renderer.dispose();
     };
-  }, []);
+  }, [hero]);
 
   useEffect(() => {
     sitesRef.current = sites;
@@ -439,15 +496,16 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments }: {
     redraw.current?.();
   }, [sites, view]);
 
-  return <figure className={styles.figure} aria-label="Interactive lunar landing site map">
-    <div className={styles.toolbar}>
+  return <figure className={styles.figure} aria-label={hero ? "Interactive 3D Moon" : "Interactive lunar landing site map"}>
+    {!hero && <div className={styles.toolbar}>
       <div className={styles.location}><strong>Lunar surface</strong><span>{view === "pole" ? "South polar view" : "Nearside overview"}</span></div>
       <div className={styles.switches} aria-label="Globe camera">
-        <button type="button" aria-pressed={view === "pole"} onClick={() => setView("pole")}>South pole</button>
-        <button type="button" aria-pressed={view === "moon"} onClick={() => setView("moon")}>Full Moon</button>
+        <button type="button" aria-pressed={view === "pole"} onClick={() => { controls.current?.reset(); setView("pole"); }}>South pole</button>
+        <button type="button" aria-pressed={view === "moon"} onClick={() => { controls.current?.reset(); setView("moon"); }}>Full Moon</button>
       </div>
-    </div>
-    <div className={`${styles.viewport} ${styles.globeViewport} ${webgl ? styles.ready : ""}`}>
+    </div>}
+    <div ref={surface} data-panning={panning} className={`${styles.viewport} ${styles.globeViewport} ${hero ? styles.heroGlobe : ""} ${webgl ? styles.ready : ""}`}
+      tabIndex={webgl ? 0 : undefined} role="group" aria-label="Moon camera. Drag or use arrows to rotate. Shift and drag to pan. Plus and minus zoom.">
       <div className={styles.fallback}>
         <div className={styles.fallbackOptions}>
           {sites.map((site, index) => <button key={site.id} type="button" aria-pressed={selectedId === site.id}
@@ -467,10 +525,17 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments }: {
           </button>
         </div>)}
       </div>
-      <span className={styles.compass}>{view === "pole" ? "90° S · 0° longitude up" : "Lunar nearside"}</span>
+      {webgl && <div className={styles.cameraTools}>
+        {!hero && <button type="button" aria-pressed={panning} onClick={() => setPanning(!panning)}>Pan</button>}
+        <button type="button" aria-label="Zoom in" onClick={() => controls.current?.zoom(1.24)}>+</button>
+        <button type="button" aria-label="Zoom out" onClick={() => controls.current?.zoom(1 / 1.24)}>−</button>
+        <button type="button" onClick={() => controls.current?.reset()}>Reset view</button>
+      </div>}
+      {!hero && <span className={styles.compass}>{view === "pole" ? "South polar region" : "Lunar globe"}</span>}
     </div>
     <figcaption>
-      Site coordinates in MEAN_ME · <a href="https://solarsystem.nasa.gov/gltf_embed/2366/">NASA Moon model</a>
+      {!hero && "Site coordinates in MEAN_ME · "}<a href="https://solarsystem.nasa.gov/gltf_embed/2366/">NASA Moon model</a>
+      {webgl && " · Drag to rotate"}
       {view === "pole" && <> · <a href="https://pgda.gsfc.nasa.gov/products/90">NASA LOLA reference hillshade</a></>}
     </figcaption>
   </figure>;
