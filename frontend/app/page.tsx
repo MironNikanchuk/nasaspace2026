@@ -71,7 +71,7 @@ export default function Landing() {
         <div className={styles.heroSpace}><section className={`${styles.wrap} ${styles.hero}`} aria-labelledby="hero-title">
           <div className={styles.heroCopy}>
             <h1 id="hero-title">Find your window <span>on the Moon.</span></h1>
-            <p>Compare sunlight and line of sight to Earth at landing sites near the lunar south pole.</p>
+            <p>Compare sunlight and Earth visibility near the lunar south pole.</p>
             <div className={styles.actions}>
               <Link className={styles.primary} href="/workspace">
                 Compare landing sites <Icon name="arrow-right" width={18} />
@@ -87,7 +87,7 @@ export default function Landing() {
         <section className={`${styles.wrap} ${styles.evidence}`} id="method" aria-labelledby="method-title">
           <div className={styles.evidenceCopy}>
             <h2 id="method-title">How terrain changes the view</h2>
-            <p>At Connecting Ridge, the modeled terrain blocks the center of Earth for longer than the geometric horizon suggests. That shortens the potential direct link.</p>
+            <p>At Connecting Ridge, a nearby ridge can hide Earth even when it’s above 0°.</p>
             {terrainExample && (
               <figure className={styles.visibility}>
                 <figcaption>
@@ -118,7 +118,7 @@ export default function Landing() {
       <footer className={`${styles.wrap} ${styles.footer}`}>
         <Brand small />
         <span>NASA Space Apps Challenge 2026</span>
-        <a href="https://github.com/MironNikanchuk/nasaspace2026">Project source <Icon name="arrow-top-right" width={15} /></a>
+        <a href="https://github.com/MironNikanchuk/nasaspace2026"><img src="/media/github-dark.svg" width="17" height="17" alt="" /> Project source</a>
       </footer>
     </div>
   );

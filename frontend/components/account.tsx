@@ -11,6 +11,7 @@ export function Account() {
   const { user, ready } = useSession();
   const [mode, setMode] = useState<"sign-in" | "sign-up" | "forgot" | "recovery">("sign-in");
   const [busy, setBusy] = useState(false);
+  const [google, setGoogle] = useState(false);
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   useEffect(() => {
@@ -21,20 +22,28 @@ export function Account() {
     return () => data.subscription.unsubscribe();
   }, [auth]);
 
+  useEffect(() => {
+    const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
+    const key = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+    if (!url || !key) return;
+    const controller = new AbortController();
+    void fetch(new URL("/auth/v1/settings", url), {
+      headers: { apikey: key }, signal: controller.signal,
+    }).then(async (response) => {
+      if (response.ok) setGoogle((await response.json()).external?.google === true);
+    }).catch(() => { /* Email sign-in remains available. */ });
+    return () => controller.abort();
+  }, []);
+
   function changeMode(next: typeof mode) {
     setMode(next);
     setError("");
     setMessage("");
   }
   return <>
-    <div className="workspace-heading"><div><h1>Account</h1><p>Manage sign-in and where your scenarios are saved.</p></div></div>
+    <div className="workspace-heading"><h1>Account</h1></div>
     {!auth ? <section className="panel account-panel"><h2>Guest workspace</h2>
-      <p>Guest comparisons are saved in this browser. Account sign-in is unavailable on this deployment.</p>
-      <dl className="account-details">
-        <div><dt>Time display</dt><dd>UTC</dd></div>
-        <div><dt>Data cadence</dt><dd>30 minutes</dd></div>
-        <div><dt>Scenario storage</dt><dd>This browser</dd></div>
-      </dl>
+      <p>Guest comparisons are saved in this browser.</p>
       <div className="action-row">
         <Link className="button button-primary" href="/workspace">Continue as guest <Icon name="arrow-right" /></Link>
         <Link className="button" href="/saved">Saved scenarios</Link>
@@ -56,6 +65,18 @@ export function Account() {
           <button type="button" aria-pressed={mode === "sign-in"} disabled={busy} onClick={() => changeMode("sign-in")}>Sign in</button>
           <button type="button" aria-pressed={mode === "sign-up"} disabled={busy} onClick={() => changeMode("sign-up")}>Create account</button>
         </div>}
+        {google && (mode === "sign-in" || mode === "sign-up") && <button className="button" type="button" disabled={busy}
+          onClick={async () => {
+            setBusy(true);
+            setError("");
+            try {
+              const { error: issue } = await auth.auth.signInWithOAuth({ provider: "google", options: {
+                redirectTo: new URL("/account", window.location.origin).href,
+              } });
+              if (issue) setError(issue.message);
+            } catch { setError("Could not start Google sign-in."); }
+            finally { setBusy(false); }
+          }}>Continue with Google</button>}
         {mode === "forgot" && <h2>Reset your password</h2>}
         <form className="account-form" key={mode} onSubmit={async (event) => {
           event.preventDefault(); setBusy(true); setError(""); setMessage("");
@@ -78,7 +99,9 @@ export function Account() {
             const response = mode === "sign-in"
               ? await auth.auth.signInWithPassword(credentials)
               : await auth.auth.signUp({ ...credentials, options: { emailRedirectTo: returnTo } });
-            if (response.error) setError(response.error.message);
+            if (response.error) setError(response.error.code === "email_address_not_authorized"
+              ? "Email registration is temporarily unavailable. You can continue as a guest."
+              : response.error.message);
             else if (mode === "sign-up" && !response.data.session) setMessage("Check your email to confirm your account.");
           } catch { setError("Could not reach the account service."); }
           finally { setBusy(false); }

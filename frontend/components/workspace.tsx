@@ -51,13 +51,22 @@ async function compare(pair: ScenarioPair, signal: AbortSignal): Promise<Compari
   return answer;
 }
 
-function ScenarioForm({ label, scenario, catalog, onChange }: {
-  label: string; scenario: Scenario; catalog: Catalog; onChange: (scenario: Scenario) => void;
+function DateFields({ scenario, onChange }: { scenario: Scenario; onChange: (scenario: Scenario) => void }) {
+  return <div className="scenario-dates">
+    <label className="field">Start (UTC)<input type="datetime-local" required value={localInput(scenario.start_utc)}
+      onChange={(event) => onChange({ ...scenario, start_utc: fromInput(event.target.value) })} /></label>
+    <label className="field">End (UTC)<input type="datetime-local" required value={localInput(scenario.end_utc)}
+      onChange={(event) => onChange({ ...scenario, end_utc: fromInput(event.target.value) })} /></label>
+  </div>;
+}
+
+function ScenarioForm({ label, scenario, catalog, separateDates, onChange }: {
+  label: string; scenario: Scenario; catalog: Catalog; separateDates: boolean; onChange: (scenario: Scenario) => void;
 }) {
   const entry = catalog.sites.find((item) => item.site.id === scenario.site_id);
   const horizons = entry?.supported_horizons ?? ["geometric"];
   return <fieldset className="scenario-form">
-    <legend><span className="scenario-letter">{label}</span> Scenario {label}</legend>
+    <legend>Scenario {label}</legend>
     <label className="field">Landing site<select value={scenario.site_id ?? "custom"}
       onChange={(event) => onChange(changeScenarioSite(scenario, event.target.value, catalog))}>
       {catalog.sites.map(({ site }) => <option key={site.id} value={site.id}>{site.name}</option>)}
@@ -71,12 +80,7 @@ function ScenarioForm({ label, scenario, catalog, onChange }: {
         value={Number.isFinite(scenario.coordinates.longitude_east_deg) ? scenario.coordinates.longitude_east_deg : ""}
         onChange={(e) => onChange({ ...scenario, coordinates: { ...scenario.coordinates!, longitude_east_deg: e.target.valueAsNumber } })} /></label>
     </div>}
-    <div className="scenario-dates">
-      <label className="field">Start (UTC)<input type="datetime-local" required value={localInput(scenario.start_utc)}
-        onChange={(event) => onChange({ ...scenario, start_utc: fromInput(event.target.value) })} /></label>
-      <label className="field">End (UTC)<input type="datetime-local" required value={localInput(scenario.end_utc)}
-        onChange={(event) => onChange({ ...scenario, end_utc: fromInput(event.target.value) })} /></label>
-    </div>
+    {separateDates && <DateFields scenario={scenario} onChange={onChange} />}
     <label className="field">Horizon<select value={scenario.horizon ?? "geometric"}
       onChange={(event) => onChange({ ...scenario, horizon: event.target.value as Horizon })}>
       <option value="geometric">Geometric horizon</option>
@@ -166,6 +170,7 @@ function comparisonInsight(result: Comparison) {
 export function Workspace({ initial }: { initial: ScenarioPair }) {
   const [catalog, setCatalog] = useState<Catalog>();
   const [pair, setPair] = useState(initial);
+  const [separateDates, setSeparateDates] = useState(() => initial[0].start_utc !== initial[1].start_utc || initial[0].end_utc !== initial[1].end_utc);
   const [result, setResult] = useState<Comparison>();
   const [compared, setCompared] = useState(initial);
   const [loading, setLoading] = useState(true);
@@ -218,7 +223,11 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
   }, [initial]);
 
   function update(index: 0 | 1, scenario: Scenario) {
-    setPair(index === 0 ? [scenario, pair[1]] : [pair[0], scenario]);
+    setPair((current) => index === 0 ? [scenario, current[1]] : [current[0], scenario]);
+  }
+
+  function shareDates({ start_utc, end_utc }: Scenario) {
+    setPair(([a, b]) => [{ ...a, start_utc, end_utc }, { ...b, start_utc, end_utc }]);
   }
 
   const dirty = JSON.stringify(pair) !== JSON.stringify(compared);
@@ -247,26 +256,38 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
   }
 
   return <>
-    <div className="workspace-heading"><div>
-      <h1>Compare landing sites</h1>
-      <p>Find when sunlight and a direct line of sight to Earth overlap.</p>
-    </div><Link href="/atlas" className="text-link">Choose from the lunar atlas <Icon name="arrow-right" width={16} /></Link></div>
+    <div className="workspace-heading"><h1>Compare landing sites</h1>
+      <Link href="/atlas" className="text-link">Lunar atlas <Icon name="arrow-right" width={16} /></Link></div>
 
-    <div className="preset-bar" aria-label="Comparison presets"><span>Presets</span>
-      {PRESETS.map((preset) => <button type="button" className="button button-small" key={preset.id}
-        onClick={() => { setPair(preset.scenarios); void run(preset.scenarios); }}>{preset.label}</button>)}</div>
-
-    {catalog && <form className="panel controls-panel" onSubmit={(e) => {
+    {catalog && <form className="controls-panel" onSubmit={(e) => {
       e.preventDefault();
       if (parsePair(pair)) void run(pair);
       else setError("Enter valid coordinates and dates for both scenarios.");
     }}>
       <div className="scenario-grid">
-        <ScenarioForm label="A" scenario={pair[0]} catalog={catalog} onChange={(scenario) => update(0, scenario)} />
-        <ScenarioForm label="B" scenario={pair[1]} catalog={catalog} onChange={(scenario) => update(1, scenario)} />
+        <ScenarioForm label="A" scenario={pair[0]} catalog={catalog} separateDates={separateDates} onChange={(scenario) => update(0, scenario)} />
+        <ScenarioForm label="B" scenario={pair[1]} catalog={catalog} separateDates={separateDates} onChange={(scenario) => update(1, scenario)} />
       </div>
-      <div className="controls-footer"><p>{catalog.demo_only ? "Bundled results cover January 7–14, 2027 UTC." :
-        `Up to ${catalog.max_duration_days} days per scenario · ${catalog.dataset.step_minutes}-minute samples`}</p>
+      <div className="period-control">
+        {!separateDates && <DateFields scenario={pair[0]} onChange={shareDates} />}
+        <label className="date-mode"><input type="checkbox" checked={separateDates} onChange={(event) => {
+          if (!event.target.checked) shareDates(pair[0]);
+          setSeparateDates(event.target.checked);
+        }} /> Separate dates</label>
+      </div>
+      <div className="controls-footer">
+        <label className="field preset-field"><span>Preset</span><select value={PRESETS.find((preset) =>
+          JSON.stringify(preset.scenarios) === JSON.stringify(pair))?.id ?? ""} onChange={(event) => {
+          const preset = PRESETS.find((item) => item.id === event.target.value);
+          if (!preset) return;
+          setPair(preset.scenarios);
+          setSeparateDates(false);
+          void run(preset.scenarios);
+        }}>
+          <option value="" disabled>Choose preset</option>
+          {PRESETS.map((preset) => <option key={preset.id} value={preset.id}>{preset.label}</option>)}
+        </select></label>
+        {catalog.demo_only && <p>Available offline · Jan 7–14</p>}
         <button className="button button-primary" disabled={loading || !parsePair(pair)} type="submit"><Icon name="arrows-exchange" width={18} />
           {loading ? "Comparing…" : "Run comparison"}</button></div>
     </form>}
@@ -274,11 +295,12 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
     {error && <p className="feedback error" role="alert">{error}</p>}
     {loading && !result && <p className="feedback" role="status">Loading comparison…</p>}
     {result && <section className="results" aria-label="Comparison results" aria-busy={loading}>
-      <header className="results-header"><div><h2>Results</h2><p>{result.demo_only ? "Saved NASA dataset" : "NASA ephemerides"}
-        {dirty ? " · Run again to apply your changes" : ""}</p></div>
+      <header className="results-header"><div><h2>Results</h2>{dirty && <p>Run again to apply your changes.</p>}</div>
         <div className="result-actions">
-          <button className="button button-small" onClick={() => csvDownload(result)}><Icon name="software-download" />CSV</button>
-          <button className="button button-small" onClick={() => window.print()}><Icon name="file-document" />Print report</button>
+          <details className="export-actions"><summary className="button button-small">Export</summary><div>
+            <button className="button button-small" onClick={() => csvDownload(result)}>CSV</button>
+            <button className="button button-small" onClick={() => window.print()}>Print report</button>
+          </div></details>
           <button className="button button-small" onClick={async () => {
             const url = new URL("/workspace", window.location.origin);
             url.searchParams.set("scenario", JSON.stringify(compared));
@@ -339,13 +361,13 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
           <MissionScene result={sceneResult} sample={sceneSample} />
         </>}
       </details>
-      <section className="report-method" aria-label="Calculation method">
-        <h3>Data and assumptions</h3>
-        <p>Visibility uses the center of each body. Earth visibility estimates a line of sight. Angles are in degrees and time is UTC.</p>
+      <details className="report-method">
+        <summary>Data and assumptions</summary>
+        <p>Visibility uses each body’s center. Angles are in degrees and time is UTC.</p>
         <p>{result.dataset.ephemeris} · {result.dataset.step_minutes}-minute samples · {result.dataset.coordinate_frame}
           {result.scenarios.some((scenario) => scenario.model.horizon === "terrain") && " · LOLA terrain, up to 45 km"}</p>
         <p><a href={result.dataset.ephemeris_source_url}>NASA JPL Horizons</a> · <a href="https://pgda.gsfc.nasa.gov/products/90">NASA LOLA elevation model</a></p>
-      </section>
+      </details>
     </section>}
   </>;
 }

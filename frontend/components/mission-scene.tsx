@@ -366,6 +366,7 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
   const redraw = useRef<(() => void) | undefined>(undefined);
   const sitesRef = useRef(sites);
   const viewRef = useRef(view);
+  const zoomStep = hero ? 1.09 : 1.24;
 
   useEffect(() => {
     const element = canvas.current;
@@ -400,7 +401,8 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
       if (width <= 0 || height <= 0) return;
       const aspect = width / height;
       const { yaw, pitch, zoom, x, y } = cameraFrame.current;
-      const vertical = (pole ? .092 : Math.max(1.16, 1.12 / aspect)) / zoom;
+      const globeFraming = hero ? 1.34 / Math.min(1, aspect) : Math.max(1.16, 1.12 / aspect);
+      const vertical = (pole ? .092 : globeFraming) / zoom;
       const horizontal = vertical * aspect;
       camera.left = -horizontal - x * horizontal * 2;
       camera.right = horizontal - x * horizontal * 2;
@@ -451,7 +453,7 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
     const interaction = connectCamera(surface.current, (frame) => {
       cameraFrame.current = frame;
       draw();
-    }, { pan: true });
+    }, { pan: !hero, maxZoom: hero ? 1.22 : 2.6 });
     controls.current = interaction;
     const resize = () => {
       const { width, height } = element.getBoundingClientRect();
@@ -505,7 +507,7 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
       </div>
     </div>}
     <div ref={surface} data-panning={panning} className={`${styles.viewport} ${styles.globeViewport} ${hero ? styles.heroGlobe : ""} ${webgl ? styles.ready : ""}`}
-      tabIndex={webgl ? 0 : undefined} role="group" aria-label="Moon camera. Drag or use arrows to rotate. Shift and drag to pan. Plus and minus zoom.">
+      tabIndex={webgl ? 0 : undefined} role="group" aria-label={`Moon camera. Drag or use arrows to rotate. ${hero ? "" : "Shift and drag to pan. "}Plus and minus zoom.`}>
       <div className={styles.fallback}>
         <div className={styles.fallbackOptions}>
           {sites.map((site, index) => <button key={site.id} type="button" aria-pressed={selectedId === site.id}
@@ -527,8 +529,8 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
       </div>
       {webgl && <div className={styles.cameraTools}>
         {!hero && <button type="button" aria-pressed={panning} onClick={() => setPanning(!panning)}>Pan</button>}
-        <button type="button" aria-label="Zoom in" onClick={() => controls.current?.zoom(1.24)}>+</button>
-        <button type="button" aria-label="Zoom out" onClick={() => controls.current?.zoom(1 / 1.24)}>−</button>
+        <button type="button" aria-label="Zoom in" onClick={() => controls.current?.zoom(zoomStep)}>+</button>
+        <button type="button" aria-label="Zoom out" onClick={() => controls.current?.zoom(1 / zoomStep)}>−</button>
         <button type="button" onClick={() => controls.current?.reset()}>Reset view</button>
       </div>}
       {!hero && <span className={styles.compass}>{view === "pole" ? "South polar region" : "Lunar globe"}</span>}

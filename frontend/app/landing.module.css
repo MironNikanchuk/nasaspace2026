@@ -133,20 +133,21 @@
   align-items: center;
   gap: 8px;
   font-size: 0.875rem;
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .primary {
+  min-height: 52px;
   color: #141618;
-  background: #edece6;
-  border: 1px solid #edece6;
-  border-radius: 4px;
-  padding: 0 14px;
+  background: #f4f4f1;
+  border: 1px solid #f4f4f1;
+  border-radius: 999px;
+  padding: 0 22px;
 }
 
 .primary:hover {
-  background: var(--cold);
-  border-color: var(--cold);
+  background: #dfdfdb;
+  border-color: #dfdfdb;
 }
 
 .inlineAction {
@@ -219,7 +220,7 @@
 }
 
 .visibility strong {
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .visibility figcaption span,
@@ -373,16 +374,25 @@
 }
 
 .heroSpace {
-  background: linear-gradient(90deg, #0e1012 5%, #0a1019a0 64%, #07101d30),
-    url("/media/nasa-starfield.jpg") 65% 52% / cover no-repeat;
+  background: linear-gradient(90deg, #0f0f0fe8, #0f0f0f35 66%, #0f0f0f10),
+    linear-gradient(0deg, #0f0f0f, transparent 16%), url("/media/hero-space.webp") center 44% / cover no-repeat;
 }
 @media (prefers-reduced-motion: no-preference) {
   .heroCopy { animation: arrival 640ms cubic-bezier(.2,.7,.2,1) both; }
-  .heroFigure { animation: arrival 860ms cubic-bezier(.2,.7,.2,1) both; }
+  .heroCopy .actions { animation: arrival 700ms 110ms cubic-bezier(.2,.7,.2,1) both; }
+  .heroFigure { animation: moon-arrival 1000ms cubic-bezier(.2,.7,.2,1) both; }
+  .primary { transition: background-color 220ms ease, border-color 220ms ease, transform 220ms ease; }
+  .primary:hover { transform: translateY(-2px); }
+  .actions svg { transition: transform 220ms ease; }
+  .actions a:hover svg { transform: translateX(3px); }
   .earthMotion { transition: transform 125ms linear; }
 }
 @keyframes arrival {
   from { opacity: 0; transform: translateY(12px); }
+  to { opacity: 1; transform: none; }
+}
+@keyframes moon-arrival {
+  from { opacity: 0; transform: translateY(12px) scale(.97); }
   to { opacity: 1; transform: none; }
 }
 .moonPoster {
@@ -398,7 +408,7 @@
   min-width: 0;
   border: 1px solid var(--line);
   border-radius: 6px;
-  background: #121716;
+  background: #151515;
   overflow: hidden;
 }
 .terrainHead, .terrainControls, .terrainReadings {

@@ -58,7 +58,8 @@ export function ElevationChart({ result, active, select, scale }: {
     {result.model.horizon === "terrain" && (["sun", "earth"] as const).map((body) =>
       <path key={body} d={path((s) => s[body].horizon_elevation_deg)} stroke={colors[body]} strokeDasharray="3 4" opacity=".52" fill="none" />)}
     {(["sun", "earth"] as const).map((body) =>
-      <path key={body} d={path((s) => s[body].elevation_deg)} stroke={colors[body]} strokeWidth="1.9" fill="none" vectorEffect="non-scaling-stroke" />)}
+      <path key={body} d={path((s) => s[body].elevation_deg)} stroke={colors[body]} strokeWidth="1.9"
+        strokeDasharray={body === "earth" ? "6 3" : undefined} fill="none" vectorEffect="non-scaling-stroke" />)}
     <line x1={cursorX} x2={cursorX} y1={top} y2={height - bottom} className="chart-cursor" />
     {(["sun", "earth"] as const).map((body) =>
       <circle key={body} cx={cursorX} cy={y(selected[body].elevation_deg)} r="3.2" fill={colors[body]} />)}
