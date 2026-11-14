@@ -40,7 +40,7 @@ export function Account() {
     setError("");
     setMessage("");
   }
-  return <>
+  return <div className="account-content">
     <div className="workspace-heading"><h1>Account</h1></div>
     {!auth ? <section className="panel account-panel"><h2>Guest workspace</h2>
       <p>Guest comparisons are saved in this browser.</p>
@@ -65,7 +65,7 @@ export function Account() {
           <button type="button" aria-pressed={mode === "sign-in"} disabled={busy} onClick={() => changeMode("sign-in")}>Sign in</button>
           <button type="button" aria-pressed={mode === "sign-up"} disabled={busy} onClick={() => changeMode("sign-up")}>Create account</button>
         </div>}
-        {google && (mode === "sign-in" || mode === "sign-up") && <button className="button" type="button" disabled={busy}
+        {google && (mode === "sign-in" || mode === "sign-up") && <button className="button account-google" type="button" disabled={busy}
           onClick={async () => {
             setBusy(true);
             setError("");
@@ -76,7 +76,7 @@ export function Account() {
               if (issue) setError(issue.message);
             } catch { setError("Could not start Google sign-in."); }
             finally { setBusy(false); }
-          }}>Continue with Google</button>}
+          }}><img src="/media/google.svg" width={18} height={18} alt="" />Continue with Google</button>}
         {mode === "forgot" && <h2>Reset your password</h2>}
         <form className="account-form" key={mode} onSubmit={async (event) => {
           event.preventDefault(); setBusy(true); setError(""); setMessage("");
@@ -118,5 +118,5 @@ export function Account() {
       </section>}
     {error && <p className="feedback error" role="alert">{error}</p>}
     {message && <p className="feedback" role="status">{message}</p>}
-  </>;
+  </div>;
 }

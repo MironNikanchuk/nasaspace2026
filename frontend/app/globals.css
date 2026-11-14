@@ -192,6 +192,10 @@ img { display: block; max-width: 100%; }
 .save-form label { flex: 1 1 220px; }
 .save-form > span { width: 100%; color: var(--sub); font-size: 14px; }
 .account-panel, .empty { display: grid; gap: 16px; padding: 24px; max-width: 540px; }
+.app-shell-account { display: flex; flex-direction: column; }
+.app-shell-account .app-main { flex: 1; display: grid; place-items: center; }
+.account-content { width: min(100%, 540px); }
+.account-content .workspace-heading { align-items: center; justify-content: center; }
 .account-panel { background: none; }
 .privacy-page { max-width: 680px; }
 .privacy-page h1 { margin-block: 16px 24px; font-size: 2.5rem; font-weight: 500; }
@@ -199,7 +203,7 @@ img { display: block; max-width: 100%; }
 .privacy-page h2 { margin-bottom: 4px; font-size: 1rem; font-weight: 500; }
 .privacy-page p { color: var(--sub); }
 .privacy-page p + p { margin-top: 8px; }
-.account-panel > .button { justify-self: start; }
+.account-google img { object-fit: contain; }
 .account-panel h2, .empty h2 { font-size: 23px; }
 .account-panel p, .empty p, .saved-list p { color: var(--sub); }
 .account-form { display: grid; gap: 12px; }

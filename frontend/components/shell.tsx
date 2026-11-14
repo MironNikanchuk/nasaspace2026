@@ -14,7 +14,7 @@ const nav = [
 export function Shell({ current, children }: {
   current: string; title: string; children: React.ReactNode;
 }) {
-  return <div className="app-shell">
+  return <div className={current === "account" ? "app-shell app-shell-account" : "app-shell"}>
     <a className="skip-link" href="#main">Skip to content</a>
     <header className="app-topbar">
       <div className="app-nav-inner">
