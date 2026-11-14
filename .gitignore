@@ -10,6 +10,18 @@ frontend/.vercel/
 frontend/next-env.d.ts
 frontend/*.tsbuildinfo
 frontend/.env*
-!frontend/.env.example
 frontend/playwright-report/
 frontend/test-results/
+
+# Local credentials and environment
+.env
+.env.*
+**/.env
+**/.env.*
+**/credentials*.json
+**/*service-account*.json
+**/service_account*.json
+**/*.pem
+**/*.key
+!.env.example
+!**/.env.example

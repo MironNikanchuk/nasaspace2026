@@ -91,11 +91,12 @@ function ScenarioForm({ label, scenario, catalog, separateDates, onChange }: {
 
 function csvDownload(result: Comparison) {
   const rows = [["scenario", "site", "horizon", "time_utc", "sun_azimuth_deg", "sun_elevation_deg",
-    "sun_horizon_deg", "earth_azimuth_deg", "earth_elevation_deg", "earth_horizon_deg"]];
+    "sun_horizon_deg", "earth_azimuth_deg", "earth_elevation_deg", "earth_horizon_deg", "data_source"]];
+  const source = result.demo_only ? "Bundled demo data" : "Live API";
   result.scenarios.forEach((scenario, i) => scenario.samples.forEach((s) => rows.push([
     String(i + 1), scenario.site.name, scenario.model.horizon, s.time_utc, String(s.sun.azimuth_deg),
     String(s.sun.elevation_deg), String(s.sun.horizon_elevation_deg), String(s.earth.azimuth_deg),
-    String(s.earth.elevation_deg), String(s.earth.horizon_elevation_deg),
+    String(s.earth.elevation_deg), String(s.earth.horizon_elevation_deg), source,
   ])));
   const csv = rows.map((row) => row.map((v) => `"${v.replaceAll('"', '""')}"`).join(",")).join("\n");
   const url = URL.createObjectURL(new Blob([csv], { type: "text/csv;charset=utf-8" }));
@@ -311,6 +312,7 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
             <Icon name="bookmark" />Save</button>
         </div>
       </header>
+      {result.demo_only && <p className="result-source" role="status">Bundled demo data · January 7–14, 2027 UTC</p>}
       {saveOpen && <form className="panel save-form" onSubmit={onSave}>
         <label className="field">Scenario title<input name="title" maxLength={100} required autoFocus defaultValue={`${result.scenarios[0].site.name} / ${result.scenarios[1].site.name}`} /></label>
         <button className="button button-primary" disabled={saving}>{saving ? "Saving…" : "Save scenario"}</button>

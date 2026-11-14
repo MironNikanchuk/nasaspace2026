@@ -22,6 +22,7 @@ jobs:
       - run: uv run --locked ruff check .
       - run: uv run --locked ruff format --check .
       - run: uv run --locked python -m pytest -q
+      - run: uv run --locked python -m scripts.sync_frontend_data --check
       - name: Build and start the Cloud Run container
         run: |
           docker build --tag lunawindow-api:ci .

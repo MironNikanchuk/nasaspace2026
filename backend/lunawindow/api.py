@@ -8,14 +8,22 @@ from pathlib import Path
 from typing import Annotated, Literal, Self
 
 from fastapi import FastAPI, HTTPException, Request
+from fastapi.exceptions import RequestValidationError
 from fastapi.middleware.cors import CORSMiddleware
+from fastapi.responses import JSONResponse
 from pydantic import AwareDatetime, BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .ephemeris import HORIZONS_SOURCE, SITE_SOURCE, Dataset, Position, Series, Site
 from .spice_provider import SOURCE_URL as SPICE_SOURCE_URL
 from .spice_provider import SpiceProvider
 from .terrain import TerrainProfile, load_terrain
-from .visibility import Window, longest_outage, simultaneous_windows, visible_windows
+from .visibility import (
+    Window,
+    longest_outage,
+    simultaneous_windows,
+    terrain_windows,
+    visible_windows,
+)
 
 MAX_DURATION_DAYS = 30
 
@@ -47,8 +55,11 @@ class Scenario(BaseModel):
     def validate_interval(self) -> Self:
         if (self.site_id is None) == (self.coordinates is None):
             raise ValueError("Supply exactly one of site_id and coordinates")
-        self.start_utc = self.start_utc.astimezone(UTC)
-        self.end_utc = self.end_utc.astimezone(UTC)
+        try:
+            self.start_utc = self.start_utc.astimezone(UTC)
+            self.end_utc = self.end_utc.astimezone(UTC)
+        except OverflowError as error:
+            raise ValueError("UTC timestamps must be between years 0001 and 9999") from error
         duration = self.end_utc - self.start_utc
         if duration <= timedelta(0):
             raise ValueError("end_utc must follow start_utc")
@@ -98,7 +109,7 @@ class GeometricModel(BaseModel):
 class TerrainModel(BaseModel):
     horizon: Literal["terrain"] = "terrain"
     visibility: Literal["disk_center"] = "disk_center"
-    crossing_method: Literal["linear_interpolation"] = "linear_interpolation"
+    crossing_method: Literal["piecewise_terrain_interpolation"] = "piecewise_terrain_interpolation"
     source_url: str
     resolution_m: int
     range_m: int
@@ -193,16 +204,15 @@ def evaluate(
         )
         for sample in series.samples_between(scenario.start_utc, scenario.end_utc)
     ]
-    times = [sample.time_utc for sample in samples]
-    sun = visible_windows(
-        times, [sample.sun.elevation_deg - sample.sun.horizon_elevation_deg for sample in samples]
-    )
-    earth = visible_windows(
-        times,
-        [sample.earth.elevation_deg - sample.earth.horizon_elevation_deg for sample in samples],
-    )
-    both = simultaneous_windows(sun, earth)
     interval = Window(scenario.start_utc, scenario.end_utc)
+    if terrain:
+        sun = terrain_windows(series, interval, terrain, 0)
+        earth = terrain_windows(series, interval, terrain, 1)
+    else:
+        times = [sample.time_utc for sample in samples]
+        sun = visible_windows(times, [sample.sun.elevation_deg for sample in samples])
+        earth = visible_windows(times, [sample.earth.elevation_deg for sample in samples])
+    both = simultaneous_windows(sun, earth)
 
     def percent(windows: list[Window]) -> float:
         total = sum(window.duration_seconds for window in windows)
@@ -253,6 +263,12 @@ app.add_middleware(
     allow_methods=["GET", "POST"],
     allow_headers=["Content-Type"],
 )
+
+
+@app.exception_handler(RequestValidationError)
+async def invalid_request(_request: Request, error: RequestValidationError) -> JSONResponse:
+    detail = [{key: issue[key] for key in ("loc", "msg", "type")} for issue in error.errors()]
+    return JSONResponse(status_code=422, content={"detail": detail})
 
 
 @app.get("/api/v1/health")

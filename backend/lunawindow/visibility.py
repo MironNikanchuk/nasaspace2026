@@ -4,6 +4,10 @@ from collections.abc import Iterable, Sequence
 from dataclasses import dataclass
 from datetime import datetime
 from itertools import pairwise
+from typing import Literal
+
+from .ephemeris import Series
+from .terrain import TerrainProfile
 
 
 @dataclass(frozen=True)
@@ -30,6 +34,32 @@ def visible_windows(times: Sequence[datetime], clearances: Sequence[float]) -> l
         if start < end:
             intervals.append(Window(start, end))
     return merge_windows(intervals)
+
+
+def terrain_windows(
+    series: Series, interval: Window, terrain: TerrainProfile, body: Literal[0, 1]
+) -> list[Window]:
+    first = (interval.start_utc - series.start_utc) // series.step
+    last, tail = divmod(interval.end_utc - series.start_utc, series.step)
+    times = []
+    clearances = []
+    for index in range(first, last + bool(tail)):
+        start = series.start_utc + series.step * index
+        left, right = series.positions[index][body], series.positions[index + 1][body]
+        times.append(start)
+        clearances.append(left.elevation_deg - terrain.horizon_at(left.azimuth_deg))
+        for fraction, horizon in terrain.knots_between(
+            left.azimuth_deg, left.azimuth_delta_to(right)
+        ):
+            times.append(start + series.step * fraction)
+            elevation = left.elevation_deg + fraction * (right.elevation_deg - left.elevation_deg)
+            clearances.append(elevation - horizon)
+    end_index = last + bool(tail)
+    end = series.positions[end_index][body]
+    times.append(series.start_utc + series.step * end_index)
+    clearances.append(end.elevation_deg - terrain.horizon_at(end.azimuth_deg))
+    # Find crossings on the source grid, then clip. Nested queries share the same crossings.
+    return simultaneous_windows(visible_windows(times, clearances), [interval])
 
 
 def merge_windows(windows: Iterable[Window]) -> list[Window]:

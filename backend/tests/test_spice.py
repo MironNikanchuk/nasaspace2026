@@ -1,9 +1,36 @@
 import os
+import sys
+from types import SimpleNamespace
 
 import pytest
 from fastapi.testclient import TestClient
 
 from lunawindow.api import app
+
+
+@pytest.mark.parametrize("nested", [True, False])
+def test_startup_loads_documented_or_flat_kernels(tmp_path, monkeypatch, nested):
+    paths = [
+        tmp_path / path
+        for path in (
+            "lsk/naif0012.tls",
+            "pck/pck00011.tpc",
+            "fk/satellites/moon_de440_250416.tf",
+            "pck/moon_pa_de440_200625.bpc",
+            "spk/planets/de440s.bsp",
+        )
+    ]
+    if not nested:
+        paths = [tmp_path / path.name for path in paths]
+    for path in paths:
+        path.parent.mkdir(parents=True, exist_ok=True)
+        path.touch()
+    loaded = []
+    monkeypatch.setitem(sys.modules, "spiceypy", SimpleNamespace(furnsh=loaded.append))
+    monkeypatch.setenv("LUNAWINDOW_SPICE_KERNEL_DIR", str(tmp_path))
+    with TestClient(app) as client:
+        assert client.get("/api/v1/sites").json()["custom_coordinates_supported"]
+    assert loaded == list(map(str, paths))
 
 
 @pytest.mark.skipif(

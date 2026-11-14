@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import json
 from dataclasses import dataclass
-from math import isfinite
+from math import ceil, floor, isfinite
 from pathlib import Path
 
 from .ephemeris import DATA_DIR
@@ -19,11 +19,24 @@ class TerrainProfile:
     elevations_deg: tuple[float, ...]
 
     def horizon_at(self, azimuth_deg: float) -> float:
-        index, remainder = divmod(azimuth_deg, self.azimuth_step_deg)
+        index, remainder = divmod(azimuth_deg % 360, self.azimuth_step_deg)
         first = int(index)
-        left = self.elevations_deg[first]
+        left = self.elevations_deg[first % len(self.elevations_deg)]
         right = self.elevations_deg[(first + 1) % len(self.elevations_deg)]
         return left + (right - left) * (remainder / self.azimuth_step_deg)
+
+    def knots_between(self, start: float, delta: float) -> list[tuple[float, float]]:
+        if not delta:
+            return []
+        end = start + delta
+        step = self.azimuth_step_deg
+        first = floor(min(start, end) / step) + 1
+        stop = ceil(max(start, end) / step)
+        indices = range(first, stop) if delta > 0 else range(stop - 1, first - 1, -1)
+        return [
+            ((index * step - start) / delta, self.elevations_deg[index % len(self.elevations_deg)])
+            for index in indices
+        ]
 
 
 def load_terrain(path: Path = DATA_DIR / "terrain.json") -> dict[str, TerrainProfile]:

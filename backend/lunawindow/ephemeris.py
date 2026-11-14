@@ -40,10 +40,13 @@ class Position:
             raise ValueError("Invalid ephemeris angles")
 
     def interpolate(self, other: Position, fraction: float) -> Position:
-        azimuth_delta = (other.azimuth_deg - self.azimuth_deg + 180) % 360 - 180
+        azimuth_delta = self.azimuth_delta_to(other)
         elevation = self.elevation_deg + fraction * (other.elevation_deg - self.elevation_deg)
         azimuth = (self.azimuth_deg + fraction * azimuth_delta) % 360
         return Position(0.0 if azimuth == 360 else azimuth, elevation)
+
+    def azimuth_delta_to(self, other: Position) -> float:
+        return (other.azimuth_deg - self.azimuth_deg + 180) % 360 - 180
 
 
 @dataclass(frozen=True)

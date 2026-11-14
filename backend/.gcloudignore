@@ -5,3 +5,14 @@
 .ruff_cache
 **/__pycache__
 data/kernels/
+
+# Local credentials and environment
+.env
+.env.*
+**/.env
+**/.env.*
+**/credentials*.json
+**/*service-account*.json
+**/service_account*.json
+**/*.pem
+**/*.key

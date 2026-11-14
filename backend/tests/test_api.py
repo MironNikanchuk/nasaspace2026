@@ -1,3 +1,6 @@
+import json
+from datetime import datetime
+
 import pytest
 from fastapi.testclient import TestClient
 
@@ -74,6 +77,8 @@ def test_same_site_can_be_compared_in_different_ranges(client):
         ({"start_utc": "2027-01-07T00:00:00"}, "timezone_aware"),
         ({"end_utc": "2027-01-07T00:00:00Z"}, "value_error"),
         ({"end_utc": "2027-04-01T00:00:00Z"}, "value_error"),
+        ({"start_utc": "0001-01-01T00:00:00+01:00"}, "value_error"),
+        ({"end_utc": "9999-12-31T23:59:59-01:00"}, "value_error"),
     ],
 )
 def test_invalid_scenarios_return_actionable_errors(client, change, error_type):
@@ -85,6 +90,48 @@ def test_invalid_scenarios_return_actionable_errors(client, change, error_type):
 def test_requires_two_scenarios(client):
     response = client.post("/api/v1/compare", json={"scenarios": [DEMO]})
     assert response.status_code == 422
+
+
+@pytest.mark.parametrize("number", ["1e999", "NaN", "Infinity", "-Infinity"])
+def test_nonfinite_coordinates_return_json_validation_errors(client, number):
+    scenario = {
+        "start_utc": DEMO["start_utc"],
+        "end_utc": DEMO["end_utc"],
+        "coordinates": {"latitude_deg": -89.4, "longitude_east_deg": "replace-me"},
+    }
+    response = client.post(
+        "/api/v1/compare",
+        content=json.dumps({"scenarios": [scenario, DEMO]}).replace('"replace-me"', number),
+        headers={"content-type": "application/json"},
+    )
+    assert response.status_code == 422
+    assert response.json()["detail"][0]["loc"][-1] == "longitude_east_deg"
+
+
+def test_terrain_crossing_is_consistent_across_nested_intervals(client):
+    broad = {
+        **DEMO,
+        "horizon": "terrain",
+        "start_utc": "2027-02-04T02:00:00Z",
+        "end_utc": "2027-02-04T02:30:00Z",
+    }
+    narrow = {**broad, "start_utc": "2027-02-04T02:14:00Z", "end_utc": "2027-02-04T02:14:30Z"}
+    response = client.post("/api/v1/compare", json={"scenarios": [broad, narrow]})
+    assert response.status_code == 200
+    full, inset = response.json()["scenarios"]
+    assert full["model"]["crossing_method"] == "piecewise_terrain_interpolation"
+    crossing = datetime.fromisoformat(full["windows"]["sun"][0]["start_utc"])
+    assert (
+        datetime.fromisoformat(inset["end_utc"])
+        < crossing
+        < datetime.fromisoformat("2027-02-04T02:16:00Z")
+    )
+    assert inset["windows"]["sun"] == []
+    through_crossing = {**narrow, "end_utc": "2027-02-04T02:17:00Z"}
+    response = client.post("/api/v1/compare", json={"scenarios": [broad, through_crossing]})
+    assert response.json()["scenarios"][1]["windows"]["sun"][0][
+        "start_utc"
+    ] == crossing.isoformat().replace("+00:00", "Z")
 
 
 def test_terrain_is_available_only_for_profiled_sites(client):

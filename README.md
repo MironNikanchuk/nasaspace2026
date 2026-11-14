@@ -58,6 +58,8 @@ uv run --locked python -m scripts.import_horizons \
 
 Set `"horizon": "terrain"` on a Connecting Ridge or Shackleton Rim scenario. The bundled profiles use an 80 m LOLA DEM, a local observer 2 m above the raster surface, a 45 km search radius, and 0.5° azimuth spacing. The ray elevation calculation includes lunar curvature. The terrain comparisons use the same Horizons angles as geometric mode, approximating the small parallax difference between the reference-sphere and local terrain observer. Terrain beyond the search radius and features finer than the DEM resolution can affect actual visibility.
 
+Terrain calculations split each ephemeris interval at the azimuth knots of the terrain profile. Clearance is linear within each segment. The API finds crossings on the source grid before clipping them to the requested dates.
+
 For Connecting Ridge on January 7–14, 2027 UTC, the Earth center is above the geometric horizon for **40.760%** of the interval and above the modeled terrain horizon for **28.305%**. [NASA LOLA DEM](https://pgda.gsfc.nasa.gov/products/90)
 
 To regenerate the profiles, download [LDEM_80S_80MPP_ADJ.TIF](https://pgda.gsfc.nasa.gov/data/LOLA_20mpp/LDEM_80S_80MPP_ADJ.TIF). Then run from `backend/`.
@@ -83,7 +85,7 @@ LUNAWINDOW_SPICE_KERNEL_DIR="$PWD/data/kernels" \
   uv run --locked --group spice uvicorn lunawindow.api:app --port 8000
 ```
 
-To run the SPICE integration test, use the same environment variable with `uv run --locked --group spice python -m pytest -q`.
+The loader also accepts these filenames directly in the kernel directory. To run the SPICE integration test, use the same environment variable with `uv run --locked --group spice python -m pytest -q`.
 
 ## Google Cloud Run
 
@@ -138,7 +140,7 @@ Open `http://localhost:3000`. When FastAPI is unreachable, the app serves bundle
 3. In Vercel select the Next.js framework and the `frontend` root. Use `npm run build` to run the project's Webpack build. Set `LUNAWINDOW_API_URL` to the Cloudflare hostname, plus `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Keep database passwords and secret keys in provider settings.
 4. Open the production app as a guest and test a date outside the bundled week. Then verify a cloud save using a confirmed account. Check the 3D atlas and test the preset with the API unavailable.
 
-Native NASA models are included with web-sized textures. Site markers use east-positive lunar coordinates. The horizon renders the angle profile sampled from LOLA and uses apparent body directions from the API. Body sizes and distances in the scene are illustrative. After rebuilding the terrain profiles, copy `backend/data/terrain.json` into `frontend/data/terrain.json` to keep the scene and calculations aligned.
+Native NASA models are included with web-sized textures. Site markers use east-positive lunar coordinates. The horizon renders the angle profile sampled from LOLA and uses apparent body directions from the API. Body sizes and distances in the scene are illustrative. After changing the ephemerides, terrain, or calculation code, run `uv run --locked python -m scripts.sync_frontend_data` from `backend/` to regenerate both frontend datasets. CI checks that the generated files match the backend.
 
 Images are from [NASA SVS 5605](https://svs.gsfc.nasa.gov/5605/) and [NASA SVS 5228](https://svs.gsfc.nasa.gov/5228/). Icons are from [css.gg](https://iconify.design/icon-sets/gg/) (MIT) via Iconify. Instrument Sans and Instrument Serif are distributed under the SIL Open Font License. The visual polish used [unslop](https://github.com/heydamir/unslop) by Damir Sokolovsky.
 

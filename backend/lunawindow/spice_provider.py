@@ -9,11 +9,11 @@ from .ephemeris import Position, Series, Site
 
 SOURCE_URL = "https://naif.jpl.nasa.gov/naif/"
 KERNELS = (
-    "naif0012.tls",
-    "pck00011.tpc",
-    "moon_de440_250416.tf",
-    "moon_pa_de440_200625.bpc",
-    "de440s.bsp",
+    Path("lsk/naif0012.tls"),
+    Path("pck/pck00011.tpc"),
+    Path("fk/satellites/moon_de440_250416.tf"),
+    Path("pck/moon_pa_de440_200625.bpc"),
+    Path("spk/planets/de440s.bsp"),
 )
 FRAME = "MOON_ME_DE440_ME421"
 
@@ -24,14 +24,20 @@ class SpiceProvider:
             import spiceypy
         except ModuleNotFoundError as error:
             raise RuntimeError("Install the spice dependency group to enable NAIF SPICE") from error
-        missing = [name for name in KERNELS if not (directory / name).is_file()]
+        paths = [
+            directory / kernel if (directory / kernel).is_file() else directory / kernel.name
+            for kernel in KERNELS
+        ]
+        missing = [
+            str(kernel) for kernel, path in zip(KERNELS, paths, strict=True) if not path.is_file()
+        ]
         if missing:
             raise RuntimeError(f"Missing NAIF kernels: {', '.join(missing)}")
 
         self._spice = spiceypy
         self._lock = Lock()
-        for filename in KERNELS:
-            self._spice.furnsh(str(directory / filename))
+        for path in paths:
+            self._spice.furnsh(str(path))
 
     def series(self, observer: Site, start: datetime, end: datetime, step: timedelta) -> Series:
         # Use the same global half-hour grid as the catalog.

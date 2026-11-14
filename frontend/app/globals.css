@@ -136,6 +136,7 @@ img { display: block; max-width: 100%; }
 .results { margin-top: 36px; }
 .results-header { display: flex; align-items: flex-end; justify-content: space-between; gap: 12px; padding-bottom: 12px; border-bottom: 1px solid var(--line); }
 .results-header h2, .atlas-info h2 { font-size: 24px; font-weight: 500; }
+.result-source { margin-top: 12px; color: var(--sub); font-size: 14px; }
 .insight { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 4px 12px; margin-block: 16px; font-size: 15px; }
 .insight-link { display: inline-flex; align-items: center; gap: 6px; border: 0; background: transparent; padding: 4px 0; color: var(--accent); font-weight: 500; }
 .insight-link:hover { text-decoration: underline; text-underline-offset: 4px; }
