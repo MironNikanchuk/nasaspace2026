@@ -7,6 +7,7 @@ import { useRouter } from "next/navigation";
 import { Icon } from "./icon";
 import { useSession } from "./session";
 import { ElevationChart, Timeline, elevationScale, utcLabel } from "./charts";
+import { VisibilityOverview } from "./visibility-overview";
 import { PRESETS, parsePair } from "@/lib/presets";
 import { saveScenario } from "@/lib/saved";
 import type { Catalog, Comparison, Horizon, Result, Scenario, ScenarioPair } from "@/lib/types";
@@ -180,6 +181,7 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
   const [saveOpen, setSaveOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState(0);
+  const [playing, setPlaying] = useState(false);
   const [view, setView] = useState<0 | 1>(0);
   const [showScene, setShowScene] = useState(false);
   const activeRequest = useRef<AbortController | null>(null);
@@ -198,6 +200,7 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
     try {
       setResult(await compare(scenarios, controller.signal));
       setCompared(scenarios);
+      setPlaying(false);
       setProgress(0);
       setView(0);
     } catch (issue) {
@@ -240,6 +243,22 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
   const sceneResult = result?.scenarios[view];
   const sceneSample = sceneResult && indices ? sceneResult.samples[indices[view]] : undefined;
   const terrainEffect = result && samePeriod ? terrainExampleSample(result.scenarios) : undefined;
+  const playbackFinished = progress === 1;
+
+  useEffect(() => {
+    if (!playing || playbackFinished) return;
+    const stepsPerFrame = Math.max(1, Math.ceil(timeSteps / 96));
+    const timer = window.setInterval(() => {
+      setProgress((current) => Math.min(1, current + stepsPerFrame / timeSteps));
+    }, 120);
+    return () => window.clearInterval(timer);
+  }, [playbackFinished, playing, timeSteps]);
+
+  function seek(next: number) {
+    setPlaying(false);
+    setProgress(next);
+  }
+
   async function onSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const title = String(new FormData(event.currentTarget).get("title") ?? "").trim();
@@ -325,7 +344,7 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
           const scenario = result.scenarios[terrainEffect.view];
           const timestamp = Date.parse(terrainEffect.timestamp);
           setView(terrainEffect.view);
-          setProgress((timestamp - Date.parse(scenario.start_utc))
+          seek((timestamp - Date.parse(scenario.start_utc))
             / (Date.parse(scenario.end_utc) - Date.parse(scenario.start_utc)));
           setShowScene(true);
           if (horizonDetails.current) {
@@ -335,17 +354,24 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
           }
         }}>Show the obstruction <Icon name="arrow-down" width={16} /></button>}
       </div>
+      {sceneResult && sceneSample && <VisibilityOverview sample={sceneSample} site={sceneResult.site.name} view={view} select={setView} />}
       {indices && <div className="time-control">
         <div><label htmlFor="comparison-time">{samePeriod ? "Time (UTC)" : "Progress through each period"}</label>
           <span>{samePeriod ? utcLabel(result.scenarios[0].samples[indices[0]].time_utc)
             : `A · ${utcLabel(result.scenarios[0].samples[indices[0]].time_utc)} / B · ${utcLabel(result.scenarios[1].samples[indices[1]].time_utc)}`}</span></div>
-        <input type="range" id="comparison-time" min={0} max={timeSteps} value={Math.round(progress * timeSteps)}
-          onChange={(event) => setProgress(Number(event.target.value) / timeSteps)}
-          aria-valuetext={samePeriod ? utcLabel(result.scenarios[0].samples[indices[0]].time_utc) : `${Math.round(progress * 100)} percent`} />
+        <div className="time-playback">
+          <button className="button button-small" type="button" onClick={() => {
+            if (playbackFinished) { setProgress(0); setPlaying(true); }
+            else setPlaying(!playing);
+          }}>{playbackFinished ? "Replay" : playing ? "Pause" : "Play"}</button>
+          <input type="range" id="comparison-time" min={0} max={timeSteps} value={Math.round(progress * timeSteps)}
+            onChange={(event) => seek(Number(event.target.value) / timeSteps)}
+            aria-valuetext={samePeriod ? utcLabel(result.scenarios[0].samples[indices[0]].time_utc) : `${Math.round(progress * 100)} percent`} />
+        </div>
       </div>}
       <div className="scenario-grid comparison-grid">{chartScale && indices && result.scenarios.map((scenario, index) =>
         <ResultPanel key={index} result={scenario} index={index} scale={chartScale} active={indices[index]}
-          select={(timestamp) => setProgress((Date.parse(timestamp) - Date.parse(scenario.start_utc))
+          select={(timestamp) => seek((Date.parse(timestamp) - Date.parse(scenario.start_utc))
             / (Date.parse(scenario.end_utc) - Date.parse(scenario.start_utc)))} />)}</div>
       <details className="horizon-details" ref={horizonDetails} onToggle={(event) => { if (event.currentTarget.open) setShowScene(true); }}>
         <summary>Inspect the horizon in 3D</summary>
@@ -356,7 +382,7 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
         {showScene && sceneResult && sceneSample && <>
           <div className="scene-time"><label htmlFor="horizon-time">Horizon time</label>
             <input type="range" id="horizon-time" min={0} max={timeSteps} value={Math.round(progress * timeSteps)}
-              onChange={(event) => setProgress(Number(event.target.value) / timeSteps)}
+              onChange={(event) => seek(Number(event.target.value) / timeSteps)}
               aria-valuetext={utcLabel(sceneSample.time_utc)} />
             <output htmlFor="horizon-time">{utcLabel(sceneSample.time_utc)}</output>
           </div>

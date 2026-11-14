@@ -58,3 +58,20 @@ test("guest can save and delete a scenario", async ({ page }) => {
   await page.reload();
   await expect(page.getByText("Guest integration test")).toHaveCount(0);
 });
+
+test("the three-body view follows the scenario switch and shared time controls", async ({ page }) => {
+  await page.goto("/workspace?preset=site-tradeoff");
+  const overview = page.getByRole("figure", { name: "Sun and Earth from the Moon" });
+  await expect(overview.getByText("Moon", { exact: true })).toBeVisible();
+  await expect(overview.getByText("Connecting Ridge", { exact: true })).toBeVisible();
+  await expect(overview.getByText(/-5.35° · Hidden/)).toBeVisible();
+  await overview.getByRole("button", { name: "Scenario B" }).click();
+  await expect(overview.getByText("Malapert Massif", { exact: true })).toBeVisible();
+  const time = page.getByRole("slider", { name: "Time (UTC)" });
+  await time.press("End");
+  await expect(overview.getByText(/\+8.1° · Visible/)).toBeVisible();
+  await page.getByRole("button", { name: "Replay", exact: true }).click();
+  await expect.poll(async () => Number(await time.inputValue())).toBeGreaterThan(0);
+  await page.getByRole("button", { name: "Pause", exact: true }).click();
+  await expect(page.getByRole("button", { name: "Play", exact: true })).toBeVisible();
+});

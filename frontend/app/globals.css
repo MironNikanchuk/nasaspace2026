@@ -145,6 +145,8 @@ img { display: block; max-width: 100%; }
 .time-control > div > label { font-weight: 500; }
 .time-control span { color: var(--sub); font-variant-numeric: tabular-nums; }
 .time-control input { width: 100%; margin: 8px 0 0; accent-color: var(--accent); }
+.time-control > .time-playback { display: grid; grid-template-columns: 72px minmax(0, 1fr); align-items: center; margin-top: 8px; }
+.time-playback input { min-width: 0; margin: 0; }
 .result-panel { min-width: 0; }
 .comparison-grid { gap: 24px; }
 .result-panel + .result-panel { border-left: 1px solid var(--line); padding-left: 24px; }
