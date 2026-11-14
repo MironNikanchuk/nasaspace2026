@@ -289,6 +289,10 @@
   cursor: grab;
   touch-action: pan-y;
 }
+.globeViewport.ready[data-panning="true"] {
+  cursor: move;
+  touch-action: none;
+}
 .globeViewport.ready[data-dragging], .sky.ready[data-dragging] {
   cursor: grabbing;
 }
@@ -312,7 +316,11 @@
   color: var(--ink);
   font-size: 14px;
 }
-.cameraTools button:hover, .cameraTools button[aria-pressed="true"] { background: #253132; }
+.cameraTools button:hover { background: #253132; }
+.cameraTools button[aria-pressed="true"] {
+  background: #d9e6e7;
+  color: #141817;
+}
 .sceneKey {
   display: flex;
   flex-wrap: wrap;
