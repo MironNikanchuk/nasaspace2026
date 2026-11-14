@@ -91,7 +91,7 @@ export default function Landing() {
               <figure className={styles.visibility}>
                 <figcaption>
                   <strong>{t("Earth above the horizon")}</strong>
-                  <span>{dateFormat.formatRange(new Date(terrainExample.scenarios[0].start_utc), new Date(terrainExample.scenarios[0].end_utc))} UTC</span>
+                  <span>{dateFormat.formatRange(new Date(terrainExample.scenarios[0].start_utc), new Date(terrainExample.scenarios[0].end_utc)).replace(/[\u2009\u202f\u00a0]/g, " ")} UTC</span>
                 </figcaption>
                 {terrainExample.scenarios.map((result) => <VisibilityRow key={result.model.horizon} result={result} />)}
               </figure>

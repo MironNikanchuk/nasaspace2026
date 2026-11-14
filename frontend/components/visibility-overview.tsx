@@ -1,3 +1,6 @@
+import { useState } from "react";
+import { BodyView } from "./body-view";
+import { ViewMode, type SceneMode } from "./view-mode";
 import { useLanguage } from "./language";
 import type { CSSProperties } from "react";
 import type { Position, Sample } from "@/lib/types";
@@ -29,6 +32,7 @@ export function VisibilityOverview({ sample, site, view, select }: {
   sample: Sample; site: string; view: 0 | 1; select: (view: 0 | 1) => void;
 }) {
   const { t } = useLanguage();
+  const [mode, setMode] = useState<SceneMode>("2d");
   const sunY = verticalPosition(sample.sun);
   const earthY = verticalPosition(sample.earth);
   const positions = { "--sun-y": `${sunY}%`, "--earth-y": `${earthY}%` } as CSSProperties;
@@ -36,12 +40,12 @@ export function VisibilityOverview({ sample, site, view, select }: {
   return <figure className={styles.overview} aria-labelledby="visibility-overview-title" style={positions}>
     <div className={styles.header}>
       <h3 id="visibility-overview-title">{t("Sun and Earth from the Moon")}</h3>
-      <div className="segmented" role="group" aria-label={t("Overview scenario")}>
+      <div className={styles.controls}><div className="segmented" role="group" aria-label={t("Overview scenario")}>
         <button type="button" aria-pressed={view === 0} onClick={() => select(0)}>{t("Scenario A")}</button>
         <button type="button" aria-pressed={view === 1} onClick={() => select(1)}>{t("Scenario B")}</button>
-      </div>
+      </div><ViewMode mode={mode} onChange={setMode} /></div>
     </div>
-    <div className={styles.scene}>
+    <div className={styles.scene}>{mode === "3d" ? <BodyView sample={sample} site={site} /> : <>
       <svg className={styles.rays} viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
         <line className={styles.horizon} x1="0" x2="100" y1="50" y2="50" />
         <line className={styles.sunRay} x1="16" y1={sunY} x2="50" y2="50" data-visible={sample.sun.above_horizon} />
@@ -53,6 +57,7 @@ export function VisibilityOverview({ sample, site, view, select }: {
         <div className={styles.bodyLabel}><strong>{t("Moon")}</strong><span>{site}</span></div>
       </div>
       <Body name="Earth" position={sample.earth} />
+      </>}
     </div>
     <figcaption>{t("Height shows clearance above or below the local horizon. Sizes and spacing are illustrative.")}</figcaption>
   </figure>;

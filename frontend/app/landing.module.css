@@ -339,7 +339,8 @@
   }
 
   .heroCopy h1 {
-    font-size: clamp(3.6rem, 11vw, 5.8rem);
+    font-size: clamp(2.9rem, 11vw, 5.8rem);
+    overflow-wrap: anywhere;
     text-wrap: initial;
   }
 
@@ -460,3 +461,9 @@
   .footer { grid-template-columns: 1fr auto; }
   .footerLinks { grid-column: 1 / -1; justify-self: start; justify-content: start; }
 }
+
+.terrainHeadActions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; }
+.terrainHeadActions strong { font-weight: 500; font-size: 13px; }
+.terrainControls > button { min-width: 36px; }
+.terrainStage { height: clamp(216px, 21vw, 306px); }
+.terrainSky { height: 100%; }

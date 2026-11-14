@@ -1,4 +1,9 @@
 export const messages: Record<string, [string, string]> = {
+  "View mode": ["Режим просмотра", "Ko‘rish rejimi"],
+  "Drag to orbit the scene": ["Поворачивайте сцену перетаскиванием", "Sahnani burish uchun torting"],
+  "3D view unavailable on this device.": ["3D недоступно на этом устройстве.", "Bu qurilmada 3D ko‘rinish mavjud emas."],
+  "Preparing 3D scene…": ["Загрузка 3D-сцены…", "3D sahna yuklanmoqda…"],
+  "NASA LOLA · Relief exaggerated": ["NASA LOLA · Высоты преувеличены", "NASA LOLA · Balandliklar kattalashtirilgan"],
   "Language": ["Язык", "Til"],
   "Skip to content": ["К содержанию", "Asosiy mazmunga o‘tish"],
   "Main navigation": ["Главная навигация", "Asosiy navigatsiya"],
@@ -159,6 +164,7 @@ export const messages: Record<string, [string, string]> = {
   "Database migrations": ["Миграции базы", "Ma’lumotlar bazasi migratsiyalari"],
   "Documentation": ["Документация", "Hujjatlar"],
   "Voiceover script": ["Текст для озвучки", "Ovozlashtirish matni"],
+  "NASA LOLA atlas raster": ["Растр атласа NASA LOLA", "NASA LOLA atlas rastri"],
   "LOLA elevation data": ["Данные высот LOLA", "LOLA balandlik ma’lumotlari"],
   "NASA Moon model": ["Модель Луны NASA", "NASA Oy modeli"],
   "NASA Earth model": ["Модель Земли NASA", "NASA Yer modeli"],

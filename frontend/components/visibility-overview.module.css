@@ -84,3 +84,5 @@
 
 @media (max-width: 420px) { .scene { height: 260px; } }
 @media print { .overview { display: none; } }
+
+.controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }

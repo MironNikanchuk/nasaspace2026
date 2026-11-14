@@ -4,13 +4,16 @@ import { useEffect, useRef, useState } from "react";
 import {
   AmbientLight, BufferGeometry, Color, DirectionalLight, DoubleSide, Float32BufferAttribute,
   Group, Line, LineBasicMaterial, LineDashedMaterial, LineLoop, Mesh, MeshBasicMaterial, MeshStandardMaterial,
-  OrthographicCamera, PerspectiveCamera, Scene, SphereGeometry, SRGBColorSpace, TextureLoader, Vector3,
+  OrthographicCamera, PerspectiveCamera, Scene, SphereGeometry, Vector3,
 } from "three";
 import {
   circlePoints, disposeScene, loadPlanet, localDirection, moonDirection,
   planetRenderer, positionDirection, terrainProfile,
 } from "@/lib/lunar-scene";
 import { connectCamera, type CameraFrame } from "@/lib/camera-motion";
+import { loadPolarRelief } from "@/lib/polar-relief";
+import { ViewMode, type SceneMode } from "./view-mode";
+import { MaterialSymbol } from "./material-symbol";
 import { useLanguage } from "./language";
 import type { Result, Sample, Site } from "@/lib/types";
 import styles from "./mission-scene.module.css";
@@ -24,7 +27,6 @@ const HORIZON_RADIUS = 11;
 const MOON_ASSET = "/media/nasa-moon.glb";
 const EARTH_ASSET = "/media/nasa-earth.glb";
 const HOME_CAMERA: CameraFrame = { yaw: 0, pitch: 0, zoom: 1, x: 0, y: 0 };
-const LOLA_ASSET = "/media/lola-pole.webp";
 
 type Body = typeof BODIES[number];
 
@@ -315,43 +317,6 @@ export function MissionScene({ result, sample }: { result: Result; sample: Sampl
 
 type GlobeView = "pole" | "moon";
 
-function polarSurface() {
-  const resolution = 64;
-  const positions = [];
-  const uvs = [];
-  const indices = [];
-  for (let row = 0; row <= resolution; row++) {
-    for (let col = 0; col <= resolution; col++) {
-      const u = col / resolution, v = 1 - row / resolution;
-      // Invert the source stereographic projection on NASA's 1,737.4 km reference sphere.
-      const east = (u - .5) * 330_000;
-      const north = (v - .5) * 330_000;
-      const latitude = (2 * Math.atan2(Math.hypot(east, north), 2 * 1_737_400)) * 180 / Math.PI - 90;
-      const longitude = Math.atan2(east, north) * 180 / Math.PI;
-      const vector = moonDirection(latitude, longitude, 1.0015);
-      positions.push(vector.x, vector.y, vector.z);
-      uvs.push(u, v);
-      if (row < resolution && col < resolution) {
-        const vertex = row * (resolution + 1) + col;
-        indices.push(vertex, vertex + resolution + 1, vertex + 1,
-          vertex + 1, vertex + resolution + 1, vertex + resolution + 2);
-      }
-    }
-  }
-  const geometry = new BufferGeometry()
-    .setAttribute("position", new Float32BufferAttribute(positions, 3))
-    .setAttribute("uv", new Float32BufferAttribute(uvs, 2))
-    .setIndex(indices);
-  return new Mesh(geometry, new MeshBasicMaterial({ side: DoubleSide, color: "#b9b8af" }));
-}
-
-function radialCoordinates(sites: Site[]) {
-  return sites.map((site) => ({
-    site,
-    vector: moonDirection(site.latitude_deg, site.longitude_east_deg),
-  }));
-}
-
 export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = false }: {
   sites: Site[]; selectedId?: string; onSelect?: (id: string) => void;
   assignments?: readonly [string | undefined, string | undefined];
@@ -361,7 +326,9 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
   const [view, setView] = useState<GlobeView>("moon");
   const [webgl, setWebgl] = useState(false);
   const [panning, setPanning] = useState(false);
-  const [spinPaused, setSpinPaused] = useState(false);
+  const [poleMode, setPoleMode] = useState<SceneMode>("2d");
+  const [hasRelief, setHasRelief] = useState(false);
+  const [reliefFailed, setReliefFailed] = useState(false);
   const canvas = useRef<HTMLCanvasElement>(null);
   const surface = useRef<HTMLDivElement>(null);
   const controls = useRef<ReturnType<typeof connectCamera> | null>(null);
@@ -372,8 +339,9 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
   const redraw = useRef<(() => void) | undefined>(undefined);
   const sitesRef = useRef(sites);
   const viewRef = useRef(view);
+  const poleModeRef = useRef(poleMode);
   const idleRotation = useRef(0);
-  const zoomStep = hero ? 1.09 : 1.24;
+  const zoomStep = 1.24;
 
   useEffect(() => {
     const element = canvas.current;
@@ -387,10 +355,13 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
     key.position.set(-2, -3, 4);
     scene.add(key, new AmbientLight("#faf4eb", 1.55));
 
-    const polarMap = polarSurface();
-    polarMap.visible = false;
-    scene.add(polarMap);
+    const polarLight = new DirectionalLight("#efeff7", 2.1);
+    polarLight.position.set(-4, 7, -2);
+    polarLight.visible = false;
+    scene.add(polarLight);
 
+    const abortRelief = new AbortController();
+    let polar: Awaited<ReturnType<typeof loadPolarRelief>> | undefined;
     let moonModel: Awaited<ReturnType<typeof loadPlanet>> | undefined;
     const draw = () => {
       const pole = viewRef.current === "pole";
@@ -398,33 +369,52 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
       if (width <= 0 || height <= 0) return;
       const aspect = width / height;
       const { yaw, pitch, zoom, x, y } = cameraFrame.current;
+      const raised = pole && poleModeRef.current === "3d";
       const globeFraming = hero ? 1.34 / Math.min(1, aspect) : Math.max(1.16, 1.12 / aspect);
-      const vertical = (pole ? .092 : globeFraming) / zoom;
+      const polarFraming = raised ? Math.min(1.07, 1.55 / aspect) : Math.min(1.36, 1.87 / aspect);
+      const vertical = pole ? polarFraming / Math.max(1, zoom) : globeFraming / zoom;
       const horizontal = vertical * aspect;
-      camera.left = -horizontal - x * horizontal * 2;
-      camera.right = horizontal - x * horizontal * 2;
-      camera.top = vertical + y * vertical * 2;
-      camera.bottom = -vertical + y * vertical * 2;
-      const latitude = pole ? -90 + Math.min(35, Math.abs(pitch) / 3) : Math.max(-87, Math.min(87, -24 + pitch));
-      const longitude = (pole ? (pitch > 0 ? 180 : 0) : 16) - yaw;
-      camera.position.copy(moonDirection(latitude, longitude, 4));
-      camera.up.copy(pole
-        ? moonDirection(0, -yaw)
-        : new Vector3(0, 1, 0));
+      const offsetX = pole ? Math.max(-2 + horizontal, Math.min(2 - horizontal, x * horizontal * 2)) : x * horizontal * 2;
+      const offsetY = pole ? Math.max(-2 + vertical, Math.min(2 - vertical, y * vertical * 2)) : y * vertical * 2;
+      camera.left = -horizontal - offsetX;
+      camera.right = horizontal - offsetX;
+      camera.top = vertical + offsetY;
+      camera.bottom = -vertical + offsetY;
+      if (pole) {
+        const incline = (raised ? Math.max(18, Math.min(66, 44 + pitch * .65)) : 0) * Math.PI / 180;
+        const bearing = (raised ? yaw + 13 : 0) * Math.PI / 180;
+        camera.position.set(5 * Math.sin(incline) * Math.sin(bearing), 5 * Math.cos(incline), 5 * Math.sin(incline) * Math.cos(bearing));
+        camera.up.set(0, raised ? 1 : 0, raised ? 0 : -1);
+      } else {
+        const latitude = Math.max(-87, Math.min(87, -24 + pitch));
+        camera.position.copy(moonDirection(latitude, 16 - yaw, 4));
+        camera.up.set(0, 1, 0);
+      }
       camera.lookAt(0, 0, 0);
       camera.updateProjectionMatrix();
       camera.updateMatrixWorld();
-      polarMap.visible = pole && Boolean(polarMap.material.map);
-      if (moonModel && hero) moonModel.rotation.y = idleRotation.current;
+      polarLight.visible = raised;
+      key.visible = !pole;
+      if (polar) {
+        polar.map.visible = pole && !raised;
+        polar.relief.visible = raised;
+      }
+      if (moonModel) {
+        moonModel.visible = !pole;
+        if (hero) moonModel.rotation.y = idleRotation.current;
+      }
 
       const controls: { x: number; y: number }[] = [];
-      for (const { site, vector } of radialCoordinates(sitesRef.current)) {
+      for (const site of sitesRef.current) {
+        const vector = pole ? polar?.point(site.latitude_deg, site.longitude_east_deg, raised)
+          : moonDirection(site.latitude_deg, site.longitude_east_deg);
         const anchor = anchors.current[site.id];
         const token = tokens.current[site.id];
         const leader = leaders.current[site.id];
         if (!anchor || !token || !leader) continue;
+        if (!vector) { anchor.hidden = token.hidden = leader.hidden = true; continue; }
         const screen = skyPoint(vector, camera);
-        const visible = screen.onscreen && vector.dot(camera.position) > 0;
+        const visible = screen.onscreen && (pole || vector.dot(camera.position) > 0);
         anchor.hidden = token.hidden = leader.hidden = !visible;
         if (!visible) continue;
         anchor.style.left = `${screen.x}%`;
@@ -474,7 +464,7 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
         const viewport = surface.current;
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
         spin = setInterval(() => {
-          if (!viewport || viewport.dataset.spinPaused === "true" || reducedMotion.matches || document.hidden || viewport.matches(":hover, :focus-within")
+          if (!viewport || reducedMotion.matches || document.hidden || viewport.matches(":hover, :focus-within")
             || viewport.dataset.dragging) return;
           const bounds = viewport.getBoundingClientRect();
           if (bounds.bottom <= 0 || bounds.top >= window.innerHeight) return;
@@ -483,16 +473,22 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
         }, 40);
       }
     }).catch(() => { /* Keep the map fallback and site controls accessible. */ });
-    if (!hero) void new TextureLoader().loadAsync(LOLA_ASSET).then((texture) => {
-      if (closed) { texture.dispose(); return; }
-      texture.colorSpace = SRGBColorSpace;
-      polarMap.material.map = texture;
-      polarMap.material.needsUpdate = true;
+    if (!hero) void loadPolarRelief(abortRelief.signal).then((loaded) => {
+      if (closed) {
+        const unused = new Group();
+        unused.add(loaded.map, loaded.relief);
+        disposeScene(unused);
+        return;
+      }
+      polar = loaded;
+      scene.add(loaded.map, loaded.relief);
+      setHasRelief(true);
       draw();
-    }).catch(() => { /* The calibrated NASA globe remains available. */ });
+    }).catch(() => { if (!closed) setReliefFailed(true); });
 
     return () => {
       closed = true;
+      abortRelief.abort();
       clearInterval(spin);
       interaction.dispose();
       controls.current = null;
@@ -507,26 +503,37 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
   useEffect(() => {
     sitesRef.current = sites;
     viewRef.current = view;
+    poleModeRef.current = poleMode;
     redraw.current?.();
-  }, [sites, view]);
+  }, [sites, view, poleMode]);
+
+  const flatPole = view === "pole" && poleMode === "2d";
+  const ready = view === "moon" ? webgl : webgl && hasRelief;
 
   return <figure className={styles.figure} aria-label={t(hero ? "Interactive 3D Moon" : "Interactive lunar landing site map")}>
     {!hero && <div className={styles.toolbar}>
       <div className={styles.switches} aria-label={t("Globe camera")}>
-        <button type="button" aria-pressed={view === "pole"} onClick={() => { controls.current?.reset(); setView("pole"); }}>{t("South pole")}</button>
-        <button type="button" aria-pressed={view === "moon"} onClick={() => { controls.current?.reset(); setView("moon"); }}>{t("Full Moon")}</button>
+        <button type="button" aria-pressed={view === "pole"} onClick={() => { controls.current?.reset(); setPanning(false); setView("pole"); }}>{t("South pole")}</button>
+        <button type="button" aria-pressed={view === "moon"} onClick={() => { controls.current?.reset(); setPanning(false); setView("moon"); }}>{t("Full Moon")}</button>
       </div>
+      {view === "pole" && <ViewMode mode={poleMode} onChange={(mode) => {
+        if (poleMode === mode) return;
+        controls.current?.reset();
+        setPanning(false);
+        setPoleMode(mode);
+      }} />}
     </div>}
-    <div ref={surface} data-panning={panning} data-spin-paused={spinPaused} className={`${styles.viewport} ${styles.globeViewport} ${hero ? styles.heroGlobe : ""} ${webgl ? styles.ready : ""}`}
-      tabIndex={webgl ? 0 : undefined} role="group" aria-label={t("Moon camera")}>
+    <div ref={surface} data-panning={flatPole || panning} data-view={view} className={`${styles.viewport} ${styles.globeViewport} ${hero ? styles.heroGlobe : ""} ${ready ? styles.ready : ""}`}
+      tabIndex={ready ? 0 : undefined} role="group" aria-label={t("Moon camera")}>
       <div className={styles.fallback}>
+        {view === "pole" && poleMode === "3d" && (reliefFailed || !webgl) && <span className={styles.poleUnavailable} role="status">{t("3D view unavailable on this device.")}</span>}
         <div className={styles.fallbackOptions}>
           {sites.map((site, index) => <button key={site.id} type="button" aria-pressed={selectedId === site.id}
             onClick={() => onSelect?.(site.id)}>{index + 1} · {site.name}</button>)}
         </div>
       </div>
       <canvas ref={canvas} className={styles.canvas} aria-hidden="true" />
-      <div className={styles.labels} hidden={!webgl}>
+      <div className={styles.labels} hidden={!ready}>
         {sites.map((site, index) => <div key={site.id}>
           <span className={styles.anchor} aria-hidden ref={(node) => { anchors.current[site.id] = node; }} />
           <span className={styles.leader} aria-hidden ref={(node) => { leaders.current[site.id] = node; }} />
@@ -538,14 +545,16 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
           </button>
         </div>)}
       </div>
-      {webgl && <div className={styles.cameraTools}>
-        {hero && <button type="button" aria-label={t(spinPaused ? "Resume rotation" : "Pause rotation")} onClick={() => setSpinPaused(!spinPaused)}>{spinPaused ? "▶" : "Ⅱ"}</button>}
-        {!hero && <button type="button" aria-pressed={panning} onClick={() => setPanning(!panning)}>{t("Pan")}</button>}
-        <button type="button" aria-label={t("Zoom in")} onClick={() => controls.current?.zoom(zoomStep)}>+</button>
-        <button type="button" aria-label={t("Zoom out")} onClick={() => controls.current?.zoom(1 / zoomStep)}>−</button>
-        <button type="button" onClick={() => { idleRotation.current = 0; controls.current?.reset(); }}>{t("Reset view")}</button>
+      {ready && !hero && <div className={styles.cameraTools}>
+        {!flatPole && <button type="button" aria-label={t("Pan")} title={t("Pan")} aria-pressed={panning} onClick={() => setPanning(!panning)}><MaterialSymbol name="pan_tool" /></button>}
+        <button type="button" aria-label={t("Zoom in")} title={t("Zoom in")} onClick={() => controls.current?.zoom(zoomStep)}><MaterialSymbol name="add" /></button>
+        <button type="button" aria-label={t("Zoom out")} title={t("Zoom out")} onClick={() => controls.current?.zoom(1 / zoomStep)}><MaterialSymbol name="remove" /></button>
+        <button type="button" aria-label={t("Reset view")} title={t("Reset view")} onClick={() => controls.current?.reset()}><MaterialSymbol name="restart_alt" /></button>
       </div>}
     </div>
+    {!hero && view === "pole" && <figcaption>
+      {poleMode === "3d" ? t("NASA LOLA · Relief exaggerated") : "NASA LOLA"}
+    </figcaption>}
     {hero && <figcaption><a href="/sources">{t("NASA Moon model")}</a></figcaption>}
   </figure>;
 }

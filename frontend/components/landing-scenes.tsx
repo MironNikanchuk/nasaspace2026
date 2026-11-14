@@ -3,6 +3,9 @@
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import type { Sample } from "@/lib/types";
+import { BodyView } from "./body-view";
+import { ViewMode, type SceneMode } from "./view-mode";
+import { MaterialSymbol } from "./material-symbol";
 import { useLanguage } from "./language";
 import styles from "@/app/landing.module.css";
 
@@ -29,7 +32,8 @@ export function TerrainAnimation({ frames }: { frames: Sample[] }) {
   const [terrain, setTerrain] = useState(true);
   const [playing, setPlaying] = useState(false);
   const frame = frames[index];
-  const svg = useRef<SVGSVGElement>(null);
+  const [mode, setMode] = useState<SceneMode>("2d");
+  const stage = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (!playing) return;
@@ -39,7 +43,7 @@ export function TerrainAnimation({ frames }: { frames: Sample[] }) {
 
   useEffect(() => {
     if (!playing) return;
-    const node = svg.current;
+    const node = stage.current;
     if (!node) return;
     const observer = new IntersectionObserver(([entry]) => { if (!entry.isIntersecting) setPlaying(false); });
     observer.observe(node);
@@ -55,9 +59,14 @@ export function TerrainAnimation({ frames }: { frames: Sample[] }) {
   return <figure className={styles.terrainDemo} aria-label={t("Animated Earth visibility at Connecting Ridge")}>
     <div className={styles.terrainHead}>
       <span>Connecting Ridge</span>
-      <strong className={visible ? styles.visible : styles.occluded}>{visible ? t("Earth visible") : t("Earth hidden")}</strong>
+      <div className={styles.terrainHeadActions}>
+        <strong className={visible ? styles.visible : styles.occluded}>{visible ? t("Earth visible") : t("Earth hidden")}</strong>
+        <ViewMode mode={mode} onChange={setMode} />
+      </div>
     </div>
-    <svg ref={svg} viewBox="0 0 600 244" className={styles.terrainSky} role="img"
+    <div ref={stage} className={styles.terrainStage}>{mode === "3d"
+      ? <BodyView sample={frame} site="Connecting Ridge" terrain={terrain} />
+      : <svg viewBox="0 0 600 244" className={styles.terrainSky} role="img"
       aria-label={`Earth elevation ${frame.earth.elevation_deg.toFixed(2)}°, horizon elevation ${height.toFixed(2)}°`}>
       <defs>
         <linearGradient id="ridge-fill" x1="0" x2="0" y1="0" y2="1">
@@ -78,7 +87,7 @@ export function TerrainAnimation({ frames }: { frames: Sample[] }) {
         {!visible && <circle r="14" fill="none" stroke="#a8dafa" strokeWidth="1.5" strokeDasharray="4 3" />}
         <text x="16" y="-12" fill="#d3ecff" fontSize="17">{t("Earth")}</text>
       </g>
-    </svg>
+    </svg>}</div>
     <div className={styles.terrainReadings}>
       <span>{t("Earth elevation")} <strong>{frame.earth.elevation_deg.toFixed(2)}°</strong></span>
       <span>{t("Horizon at Earth’s azimuth")} <strong>{height.toFixed(2)}°</strong></span>
@@ -88,7 +97,7 @@ export function TerrainAnimation({ frames }: { frames: Sample[] }) {
         <button type="button" aria-pressed={!terrain} onClick={() => setTerrain(false)}>{t("Geometric")}</button>
         <button type="button" aria-pressed={terrain} onClick={() => setTerrain(true)}>{t("LOLA terrain")}</button>
       </div>
-      <button className="button button-small" type="button" onClick={() => setPlaying(!playing)}>{playing ? t("Pause") : t("Play")}</button>
+      <button className="button button-small" type="button" aria-label={t(playing ? "Pause" : "Play")} title={t(playing ? "Pause" : "Play")} onClick={() => setPlaying(!playing)}><MaterialSymbol name={playing ? "pause" : "play_arrow"} /></button>
     </div>
     <label className={styles.terrainTime}>
       <span>{frame.time_utc.slice(0, 16).replace("T", " ")} UTC</span>

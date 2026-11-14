@@ -336,3 +336,13 @@
 @media (prefers-reduced-motion: no-preference) {
   .canvas { transition: opacity 420ms ease; }
 }
+
+.globeViewport[data-view="pole"] {
+  background: #0d0f12 url("/media/lola-pole.webp") center / cover no-repeat;
+}
+.globeViewport.ready[data-view="pole"] {
+  background: radial-gradient(ellipse at 50% 35%, #17191d, #0b0d10 85%);
+}
+.globeViewport[data-view="pole"] .fallback { background: #10121695; }
+.poleUnavailable { position: absolute; top: 12px; inset-inline: 10px; text-align: center; }
+.cameraTools button { display: grid; place-items: center; border-radius: 7px; border-color: #ffffff35; background: #17191be8; }

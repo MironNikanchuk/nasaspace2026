@@ -83,11 +83,12 @@ export function connectCamera(
   }
   function keyboard(event: KeyboardEvent) {
     if (event.target !== surface) return;
+    const panKey = event.shiftKey || surface.dataset.panning === "true";
     switch (event.key) {
-      case "ArrowLeft": move(-30, 0, event.shiftKey); break;
-      case "ArrowRight": move(30, 0, event.shiftKey); break;
-      case "ArrowUp": move(0, -24, event.shiftKey); break;
-      case "ArrowDown": move(0, 24, event.shiftKey); break;
+      case "ArrowLeft": move(-30, 0, panKey); break;
+      case "ArrowRight": move(30, 0, panKey); break;
+      case "ArrowUp": move(0, -24, panKey); break;
+      case "ArrowDown": move(0, 24, panKey); break;
       case "+":
       case "=": zoom(1.24); break;
       case "-": zoom(1 / 1.24); break;

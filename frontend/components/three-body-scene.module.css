@@ -1,0 +1,27 @@
+.viewer {
+  display: grid;
+  grid-template-rows: minmax(0, 1fr) auto;
+  height: 100%;
+  min-height: 0;
+  background: linear-gradient(110deg, #0a0c11ad, #0c1119b8), url("/media/nasa-starfield.jpg") center / cover;
+}
+.stage {
+  position: relative;
+  cursor: grab;
+  min-height: 0;
+  touch-action: pan-y;
+}
+.stage[data-dragging] { cursor: grabbing; }
+.stage canvas { display: block; position: absolute; inset: 0; width: 100%; height: 100%; }
+.loading { position: absolute; inset: 0; display: grid; place-items: center; text-align: center; color: var(--sub); font-size: 13px; }
+.legend {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 4px;
+  padding: 8px 10px 12px;
+  background: #0c1017a0;
+  text-align: center;
+}
+.legend > span { display: grid; gap: 2px; }
+.legend strong { font-size: 14px; font-weight: 500; }
+.legend small { font-size: 12px; color: #d4d7dc; font-variant-numeric: tabular-nums; }

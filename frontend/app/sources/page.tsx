@@ -11,12 +11,14 @@ const resources = [
   ["Documentation", github + "#readme"],
   ["Voiceover script", github + "/blob/main/docs/voiceover.md"],
   ["JPL Horizons", "https://ssd.jpl.nasa.gov/horizons/"],
+  ["NASA LOLA atlas raster", "https://pgda.gsfc.nasa.gov/data/LOLA_20mpp/LDEM_60S_240MPP_ADJ.TIF"],
   ["LOLA elevation data", "https://pgda.gsfc.nasa.gov/products/90"],
   ["NASA Moon model", "https://solarsystem.nasa.gov/gltf_embed/2366/"],
   ["NASA Earth model", "https://solarsystem.nasa.gov/gltf_embed/2393/"],
   ["NASA Solar Dynamics Observatory", "https://svs.gsfc.nasa.gov/14709/"],
   ["NASA VIIRS Earth", "https://science.nasa.gov/photojournal/earth/"],
   ["NASA Deep Star Maps", "https://svs.gsfc.nasa.gov/4851/"],
+  ["Material Symbols", "https://fonts.google.com/icons"],
   ["B612 / B612 Mono", "https://fonts.google.com/specimen/B612"],
 ];
 

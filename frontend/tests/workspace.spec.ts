@@ -70,6 +70,12 @@ test("the three-body view follows the scenario switch and shared time controls",
   const time = page.getByRole("slider", { name: "Time (UTC)" });
   await time.press("End");
   await expect(overview.getByText(/\+8.1° · Visible/)).toBeVisible();
+  await overview.getByRole("button", { name: "3D" }).click();
+  await expect(overview.getByRole("button", { name: "3D" })).toHaveAttribute("aria-pressed", "true");
+  await expect(overview.getByText("Malapert Massif", { exact: true })).toBeVisible();
+  await expect(overview.getByText(/\+8.10° · Visible/)).toBeVisible();
+  await overview.getByRole("button", { name: "2D" }).click();
+  await expect(overview.getByText(/\+8.1° · Visible/)).toBeVisible();
   await page.getByRole("button", { name: "Replay", exact: true }).click();
   await expect.poll(async () => Number(await time.inputValue())).toBeGreaterThan(0);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
@@ -79,12 +85,20 @@ test("the three-body view follows the scenario switch and shared time controls",
 test("language selection persists across the landing page, atlas and sources", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/");
-  await page.getByRole("combobox", { name: "Language" }).selectOption("ru");
+  const language = page.getByRole("button", { name: "Language" });
+  await language.press("ArrowDown");
+  await expect(page.getByRole("button", { name: "English" })).toBeFocused();
+  await page.keyboard.press("Escape");
+  await expect(language).toBeFocused();
+  await expect(language).toHaveAttribute("aria-expanded", "false");
+  await language.click();
+  await page.getByRole("button", { name: "Русский" }).click();
   await expect(page.getByRole("heading", { name: "Как рельеф меняет видимость" })).toBeVisible();
   await expect(page.getByRole("figure", { name: "Видимость Земли на Connecting Ridge" }).locator("svg image")).toHaveCount(3);
   await page.getByRole("link", { name: "Лунный атлас", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Лунный атлас", exact: true })).toBeVisible();
-  await page.getByRole("combobox", { name: "Язык" }).selectOption("uz");
+  await page.getByRole("button", { name: "Язык" }).click();
+  await page.getByRole("button", { name: "O‘zbekcha" }).click();
   await expect(page.getByRole("heading", { name: "Oy atlasi", exact: true })).toBeVisible();
   await page.goto("/sources");
   await expect(page.getByRole("heading", { name: "Manbalar", exact: true })).toBeVisible();
