@@ -4,11 +4,15 @@
 
 **Challenge** Lunar Landing Site Navigator — NASA Space Apps Challenge 2026
 
+- [Public app](https://lunawindow-gameover.vercel.app/)
+- [Terrain impact demo](https://lunawindow-gameover.vercel.app/workspace?preset=terrain-impact)
+- [30-second video (MP4)](https://lunawindow-gameover.vercel.app/media/lunawindow-demo.mp4)
+
 ## Project summary
 
 LunaWindow compares candidate landing scenarios near the Moon’s south pole. Select two sites or dates to see when the centers of the Sun and Earth are above the horizon, how long their visibility overlaps, and how local terrain changes those estimates. The comparison uses JPL Horizons ephemerides and two terrain profiles built from NASA’s Lunar Orbiter Laser Altimeter data.
 
-For a seven-day example on Connecting Ridge, including the modeled terrain reduces Earth-center visibility from 40.76% to 28.31%. Over that period, the longest stretch without Earth-center visibility increases from about 99.5 to 120.4 hours. The values estimate geometric line of sight under the stated model.
+For a seven-day example on Connecting Ridge, including the modeled terrain reduces Earth-center visibility from 40.76% to 28.31%. Over that period, the longest stretch without Earth-center visibility increases from about 99.5 to 120.4 hours. The values estimate line of sight under the stated geometric and terrain models.
 
 ## 30-second demo
 
@@ -22,7 +26,7 @@ For a seven-day example on Connecting Ridge, including the modeled terrain reduc
 - Ephemerides and site coordinates. [NASA JPL Horizons](https://ssd.jpl.nasa.gov/horizons/) and [NASA Lunar Surface Data Book](https://ntrs.nasa.gov/citations/20250002845)
 - Terrain and local ephemeris tools. [NASA LOLA DEM](https://pgda.gsfc.nasa.gov/products/90) and [NAIF SPICE](https://naif.jpl.nasa.gov/naif/)
 - Images and interactive models. [NASA SVS lunar image](https://svs.gsfc.nasa.gov/5605/), [NASA SVS south-pole horizon](https://svs.gsfc.nasa.gov/5228/), [Moon 3D model](https://solarsystem.nasa.gov/gltf_embed/2366/), and [Earth 3D model](https://solarsystem.nasa.gov/gltf_embed/2393/)
-- Codex assisted with implementation, testing, and the submission draft. [unslop](https://github.com/heydamir/unslop) guided the visual polish.
+- Codex assisted with implementation, testing, and the submission draft. The demo uses synthetic narration. [unslop](https://github.com/heydamir/unslop) guided the visual polish.
 
 ## Publish
 
