@@ -201,7 +201,7 @@ img { display: block; max-width: 100%; }
 .account-content .workspace-heading { align-items: center; justify-content: center; }
 .account-panel { background: none; }
 .privacy-page { max-width: 680px; }
-.privacy-page h1 { margin-block: 16px 24px; font-size: 2.5rem; font-weight: 500; }
+.privacy-page h1 { margin-block: 16px 24px; font-size: clamp(1.6rem, 7vw, 2.5rem); font-weight: 500; overflow-wrap: anywhere; }
 .privacy-page section + section { margin-top: 20px; }
 .privacy-page h2 { margin-bottom: 4px; font-size: 1rem; font-weight: 500; }
 .privacy-page p { color: var(--sub); }
