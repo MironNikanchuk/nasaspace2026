@@ -4,7 +4,7 @@ FROM python:3.12-slim
 COPY --from=uv /uv /usr/local/bin/uv
 WORKDIR /app
 COPY pyproject.toml uv.lock ./
-RUN uv sync --locked --no-dev
+RUN uv sync --locked --no-dev --no-python-downloads
 COPY lunawindow ./lunawindow
 COPY data ./data
 ENV PORT=8080
