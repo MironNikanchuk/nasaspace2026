@@ -34,8 +34,7 @@ export function Atlas({ initial }: { initial: Catalog }) {
     fetch("/api/lunar/sites", { signal: request.signal }).then(async (response) => {
       if (!response.ok) return;
       const next: Catalog = await response.json();
-      if (next.dataset.version === demoCatalog.dataset.version) setCatalog(next);
-      else if (next.custom_coordinates_supported) setCatalog({ ...initial, custom_coordinates_supported: true });
+      if (next.dataset.version === demoCatalog.dataset.version) setCatalog({ ...next, custom_coordinates_supported: true });
     }).catch(() => { /* The bundled atlas remains available without the API. */ });
     return () => request.abort();
   }, [initial]);

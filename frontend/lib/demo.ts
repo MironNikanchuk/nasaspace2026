@@ -2,7 +2,9 @@ import snapshot from "@/data/demo.json";
 import { DEMO_END, DEMO_START } from "./presets";
 import type { Catalog, Comparison, Result, ScenarioPair } from "./types";
 
-export const demoCatalog: Catalog = { ...(snapshot.catalog as Catalog), demo_only: true };
+export const demoCatalog: Catalog = {
+  ...(snapshot.catalog as Catalog), demo_only: true, custom_coordinates_supported: true,
+};
 const results = snapshot.results as Record<string, Result>;
 
 export function demoComparison(pair: ScenarioPair): Comparison | undefined {

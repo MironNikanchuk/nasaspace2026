@@ -69,6 +69,23 @@ test("workspace is public with browser-only saves and no account page", async ({
   await expect(page.getByText("Guest integration test")).toHaveCount(0);
 });
 
+test("custom south-pole coordinates work when the API is unreachable", async ({ page }) => {
+  await page.goto("http://127.0.0.1:3182/workspace");
+  await page.getByLabel("Landing site").first().selectOption("custom");
+  await page.getByLabel("Latitude (°)").fill("-85");
+  await page.getByLabel("Longitude east (°)").fill("180");
+  await page.getByLabel("Start (UTC)").fill("2027-02-04T02:00:00Z");
+  await page.getByRole("button", { name: "24 h" }).click();
+  await page.getByRole("button", { name: "Run comparison" }).click();
+  await expect(page.getByText("Offline results · Custom coordinates use bundled SPICE vectors")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Custom coordinates" })).toBeVisible();
+  await expect(page.getByText(/NAIF SPICE DE440 \(browser\)/)).toBeVisible();
+  await page.getByRole("button", { name: "Save", exact: true }).click();
+  await page.getByLabel("Scenario title").fill("Offline custom scenario");
+  await page.getByRole("button", { name: "Save scenario" }).click();
+  await expect(page.getByText("Saved on this device.")).toBeVisible();
+});
+
 test("the three-body view follows the scenario switch and shared time controls", async ({ page }) => {
   await page.goto("/workspace?preset=site-tradeoff");
   const overview = page.getByRole("figure", { name: "Sun and Earth from the Moon" });

@@ -131,13 +131,13 @@ npm ci
 npm run dev
 ```
 
-Open `http://localhost:3000`. When FastAPI is unreachable, the app serves bundled real results for January 7–14, 2027 UTC. Live date changes and custom coordinates require the running API. The [terrain-impact preset](http://localhost:3000/workspace?preset=terrain-impact) gives a reproducible demo.
+Open `http://localhost:3000`. If FastAPI is unreachable, the browser calculates comparisons for any supported date range in Q1 2027 UTC using assets served by the frontend. Catalog sites use bundled JPL Horizons samples and the same terrain windows. Custom coordinates use the geometric horizon and bundled Moon-fixed DE440 vectors with observer parallax; light-time and aberration corrections are evaluated at the lunar center rather than at each site. This fallback requires the frontend to be reachable. The [terrain-impact preset](http://localhost:3000/workspace?preset=terrain-impact) gives a reproducible demo.
 
 ### Vercel and Cloudflare setup
 
 1. Start FastAPI on the backend host, then expose it through a [named Cloudflare Tunnel](https://developers.cloudflare.com/tunnel/get-started/). Route a stable hostname to `http://127.0.0.1:8000`, and verify `/api/v1/health` through the tunnel. A [Quick Tunnel](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/) is suitable for a temporary rehearsal while the backend and connector are running.
 2. In Vercel select the Next.js framework and the `frontend` root. Use `npm run build` to run the project's Webpack build. Set `LUNAWINDOW_API_URL` to the Cloudflare hostname.
-3. Verify a comparison for a date outside the bundled example, saving in the browser, and the offline mode for a catalog site.
+3. Verify a comparison for a date outside the preset, including a custom location with FastAPI stopped, and save a scenario in the browser.
 
 Native NASA models are included with web-sized textures. Site markers use east-positive lunar coordinates. The horizon renders the angle profile sampled from LOLA and uses apparent body directions from the API. Body sizes and distances in the scene are illustrative. After changing the ephemerides, terrain, or calculation code, run `uv run --locked python -m scripts.sync_frontend_data` from `backend/` to regenerate both frontend datasets. CI checks that the generated files match the backend.
 

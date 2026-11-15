@@ -60,11 +60,13 @@ async function compare(pair: ScenarioPair, signal: AbortSignal): Promise<Compari
     return offlineComparison(pair, signal);
   }
   if (response.status >= 500) return offlineComparison(pair, signal);
-  const answer = await response.json();
+  const answer = await response.json().catch(() => null);
+  if (!answer) return offlineComparison(pair, signal);
   if (answer.demo_only || (response.status === 422 && Array.isArray(answer.detail)
-    && pair.every((scenario) => scenario.site_id)
     && answer.detail.some((issue: { type: string }) =>
-      ["unknown_site", "terrain_unavailable", "extra_forbidden"].includes(issue.type)))) {
+      issue.type === "custom_coordinates_unavailable"
+      || (pair.every((scenario) => scenario.site_id)
+        && ["unknown_site", "terrain_unavailable", "extra_forbidden"].includes(issue.type))))) {
     return offlineComparison(pair, signal);
   }
   if (!response.ok) {
@@ -274,8 +276,7 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
         if (!response.ok) throw new Error("Could not load site catalog");
         return response.json();
       }).then((remote: Catalog) => {
-        if (remote.dataset.version === demoCatalog.dataset.version) setCatalog(remote);
-        else if (remote.custom_coordinates_supported) setCatalog({ ...demoCatalog, custom_coordinates_supported: true });
+        if (remote.dataset.version === demoCatalog.dataset.version) setCatalog({ ...remote, custom_coordinates_supported: true });
       }).catch(() => { /* The versioned catalog is bundled with the app. */ });
     void run(initial);
     return () => {
@@ -368,7 +369,7 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
             setPair(([a, b]) => [{ ...a, visibility }, { ...b, visibility }]);
           }}>{Object.entries(diskLabels).map(([key, label]) => <option key={key} value={key}>{t(label)}</option>)}</select>
         </label>
-        {offline && <p role="status">{t("Offline mode · Catalog sites, 2027-01-01 / 2027-04-01 UTC")}</p>}
+        {offline && <p role="status">{t("Offline mode · 2027-01-01 / 2027-04-01 UTC")}</p>}
         <button className="button button-primary" disabled={loading || !valid} type="submit"><Icon name="arrows-exchange" width={18} />
           {loading ? t("Comparing…") : t("Run comparison")}</button></div>
     </form>}
@@ -392,7 +393,9 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
             <Icon name="bookmark" />{t("Save")}</button>
         </div>
       </header>
-      {result.demo_only && <p className="result-source" role="status">{t("Offline results · Bundled JPL Horizons data")}</p>}
+      {result.demo_only && <p className="result-source" role="status">{t(result.scenarios.some(({ site }) => site.id === "custom")
+        ? "Offline results · Custom coordinates use bundled SPICE vectors"
+        : "Offline results · Bundled JPL Horizons data")}</p>}
       {saveOpen && <form className="panel save-form" onSubmit={onSave}>
         <label className="field">{t("Scenario title")}<input name="title" maxLength={100} required autoFocus defaultValue={`${result.scenarios[0].site.name} / ${result.scenarios[1].site.name}`} /></label>
         <button className="button button-primary">{t("Save scenario")}</button>
