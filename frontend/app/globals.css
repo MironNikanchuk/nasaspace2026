@@ -194,23 +194,15 @@ img { display: block; max-width: 100%; }
 .save-form { display: flex; align-items: end; gap: 12px; flex-wrap: wrap; margin-top: 12px; padding: 12px; }
 .save-form label { flex: 1 1 220px; }
 .save-form > span { width: 100%; color: var(--sub); font-size: 14px; }
-.account-panel, .empty { display: grid; gap: 16px; padding: 24px; max-width: 540px; }
-.app-shell-account { display: flex; flex-direction: column; }
-.app-shell-account .app-main { flex: 1; display: grid; place-items: center; }
-.account-content { width: min(100%, 540px); }
-.account-content .workspace-heading { align-items: center; justify-content: center; }
-.account-panel { background: none; }
+.empty { display: grid; gap: 16px; padding: 24px; max-width: 540px; }
 .privacy-page { max-width: 680px; }
 .privacy-page h1 { margin-block: 16px 24px; font-size: clamp(1.6rem, 7vw, 2.5rem); font-weight: 500; overflow-wrap: anywhere; }
 .privacy-page section + section { margin-top: 20px; }
 .privacy-page h2 { margin-bottom: 4px; font-size: 1rem; font-weight: 500; }
 .privacy-page p { color: var(--sub); }
 .privacy-page p + p { margin-top: 8px; }
-.account-google img { object-fit: contain; }
-.account-panel h2, .empty h2 { font-size: 23px; }
-.account-panel p, .empty p, .saved-list p { color: var(--sub); }
-.account-form { display: grid; gap: 12px; }
-.account-link { border: 0; background: none; padding: 0; justify-self: start; }
+.empty h2 { font-size: 23px; }
+.empty p, .saved-list p { color: var(--sub); }
 .segmented { display: inline-flex; justify-self: start; gap: 4px; border: 1px solid var(--line); border-radius: 5px; padding: 3px; }
 .segmented button { color: var(--sub); background: transparent; border: 0; border-radius: 3px; min-height: 32px; padding: 0 10px; white-space: nowrap; }
 .segmented button[aria-pressed=true] { color: var(--ink); background: #2d2d2d; }
@@ -263,7 +255,7 @@ img { display: block; max-width: 100%; }
 }
 @media (prefers-reduced-motion: no-preference) {
   .button, .field input, .field select { transition: color 180ms ease, background-color 180ms ease, border-color 180ms ease; }
-  .app-main > *, .horizon-details[open] > :not(summary), .account-form { animation: settle-in 300ms cubic-bezier(.2,.7,.25,1) both; }
+  .app-main > *, .horizon-details[open] > :not(summary) { animation: settle-in 300ms cubic-bezier(.2,.7,.25,1) both; }
 }
 @keyframes settle-in {
   from { opacity: 0; transform: translateY(6px); }
@@ -346,10 +338,6 @@ img { display: block; max-width: 100%; }
 }
 .workspace-entry { margin-bottom: 16px; color: var(--sub); font-size: 13px; }
 .workspace-entry a { margin-inline-start: 6px; text-decoration: underline; }
-.profile-details { display: grid; gap: 12px; margin: 0; }
-.profile-details div { display: grid; gap: 2px; }
-.profile-details dt { color: var(--sub); font-size: 13px; }
-.profile-details dd { margin: 0; overflow-wrap: anywhere; }
 
 @view-transition { navigation: auto; }
 @media (prefers-reduced-motion: reduce) {
@@ -388,8 +376,6 @@ img { display: block; max-width: 100%; }
 .metric-row strong, .atlas-site-list small, .time-control span, .scenario-dates input, .timeline-axis, .measurement-note {
   font-family: var(--sans); font-variant-numeric: tabular-nums;
 }
-.account-link, .account-panel .text-link { text-decoration: underline; text-underline-offset: 4px; }
-.guest-entry { align-self: start; font-weight: 600; }
 .window-search { margin-top: 24px; padding: 16px; display: grid; justify-items: start; gap: 10px; }
 .window-search h2 { font-size: 23px; }
 .window-search p { color: var(--sub); }

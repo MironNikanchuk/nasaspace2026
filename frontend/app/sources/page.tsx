@@ -7,7 +7,6 @@ const github = "https://github.com/MironNikanchuk/nasaspace2026";
 const resources = [
   ["Frontend", github + "/tree/main/frontend"],
   ["FastAPI backend", github + "/tree/main/backend"],
-  ["Database migrations", github + "/tree/main/supabase"],
   ["Documentation", github + "#readme"],
   ["Voiceover script", github + "/blob/main/docs/voiceover.md"],
   ["JPL Horizons", "https://ssd.jpl.nasa.gov/horizons/"],

@@ -9,14 +9,13 @@ const nav = [
   ["workspace", "/workspace", "view-grid", "Workspace"],
   ["atlas", "/atlas", "globe-alt", "Atlas"],
   ["saved", "/saved", "bookmark", "Saved"],
-  ["account", "/account", "profile", "Account"],
 ];
 
 export function Shell({ current, children }: {
   current: string; title: string; children: React.ReactNode;
 }) {
   const { t } = useLanguage();
-  return <div className={current === "account" ? "app-shell app-shell-account" : "app-shell"}>
+  return <div className="app-shell">
     <a className="skip-link" href="#main">{t("Skip to content")}</a>
     <header className="app-topbar">
       <div className="app-nav-inner">

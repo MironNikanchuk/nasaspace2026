@@ -54,8 +54,10 @@ test("offline Q1 results are marked in the UI, exported CSV and printable report
   await expect(page.getByRole("figure", { name: "Sun and Earth from the Moon" })).toBeVisible();
 });
 
-test("guest can save and delete a scenario", async ({ page }) => {
+test("workspace is public with browser-only saves and no account page", async ({ page, request }) => {
+  expect((await request.get("/account")).status()).toBe(404);
   await page.goto("/workspace");
+  await expect(page.getByRole("link", { name: "Account" })).toHaveCount(0);
   await page.getByRole("button", { name: "Save", exact: true }).click();
   await page.getByLabel("Scenario title").fill("Guest integration test");
   await page.getByRole("button", { name: "Save scenario" }).click();

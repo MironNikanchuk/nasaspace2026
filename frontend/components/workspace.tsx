@@ -6,7 +6,6 @@ import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Icon } from "./icon";
-import { useSession } from "./session";
 import { ElevationChart, Timeline, elevationScale } from "./charts";
 import { DAY_MS, percent as pct, utcLabel } from "@/lib/format";
 import { demoCatalog } from "@/lib/demo";
@@ -237,7 +236,6 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
   const [error, setError] = useState("");
   const [notice, setNotice] = useState("");
   const [saveOpen, setSaveOpen] = useState(false);
-  const [saving, setSaving] = useState(false);
   const [progress, setProgress] = useState(0);
   const [playing, setPlaying] = useState(false);
   const [view, setView] = useState<0 | 1>(0);
@@ -245,7 +243,6 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
   const activeRequest = useRef<AbortController | null>(null);
   const horizonDetails = useRef<HTMLDetailsElement>(null);
   const router = useRouter();
-  const { user, ready } = useSession();
 
   async function run(scenarios: ScenarioPair) {
     activeRequest.current?.abort();
@@ -322,19 +319,16 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
     setProgress(next);
   }
 
-  async function onSave(event: React.FormEvent<HTMLFormElement>) {
+  function onSave(event: React.FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const title = String(new FormData(event.currentTarget).get("title") ?? "").trim();
-    if (!title || saving) return;
-    setSaving(true);
+    if (!title) return;
     try {
-      await saveScenario(title, compared, user?.id);
-      setNotice(user ? "Saved to your account." : "Saved on this device.");
+      saveScenario(title, compared);
+      setNotice("Saved on this device.");
       setSaveOpen(false);
     } catch (issue) {
       setNotice(issue instanceof Error ? issue.message : "Could not save the comparison.");
-    } finally {
-      setSaving(false);
     }
   }
 
@@ -394,15 +388,15 @@ export function Workspace({ initial }: { initial: ScenarioPair }) {
             try { await navigator.clipboard.writeText(url.href); setNotice("Comparison link copied."); }
             catch { router.replace(url.pathname + url.search, { scroll: false }); setNotice("Copy the comparison link from the address bar."); }
           }}><Icon name="link" />{t("Share")}</button>
-          <button className="button button-small" disabled={!ready} onClick={() => setSaveOpen(!saveOpen)}>
+          <button className="button button-small" onClick={() => setSaveOpen(!saveOpen)}>
             <Icon name="bookmark" />{t("Save")}</button>
         </div>
       </header>
       {result.demo_only && <p className="result-source" role="status">{t("Offline results · Bundled JPL Horizons data")}</p>}
       {saveOpen && <form className="panel save-form" onSubmit={onSave}>
         <label className="field">{t("Scenario title")}<input name="title" maxLength={100} required autoFocus defaultValue={`${result.scenarios[0].site.name} / ${result.scenarios[1].site.name}`} /></label>
-        <button className="button button-primary" disabled={saving}>{saving ? t("Saving…") : t("Save scenario")}</button>
-        {!user && <span>{t("Guest saves stay on this device.")}</span>}
+        <button className="button button-primary">{t("Save scenario")}</button>
+        <span>{t("Comparisons saved in this browser.")}</span>
       </form>}
       {notice && <p className="feedback" role="status">{t(notice)}</p>}
       <div className="insight">

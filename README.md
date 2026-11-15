@@ -120,7 +120,7 @@ uv run --locked python -m pytest -q
 
 ## Full-stack web app
 
-The Next.js app lives in `frontend/`. It includes a GameOver landing page, side-by-side comparisons, synchronized elevation plots, visibility timelines, shareable scenarios, CSV export, and a printable report. The [NASA Moon](https://solarsystem.nasa.gov/gltf_embed/2366/) globe lets users select a south-pole landing site and assign it to a comparison. The horizon uses the selected UTC sample and the [NASA Earth](https://solarsystem.nasa.gov/gltf_embed/2393/) model to show why a body is visible or occluded. The analyzer is public. Guests can save scenarios in their browser. Signed-in users use a private Supabase library.
+The Next.js app lives in `frontend/`. It includes a GameOver landing page, side-by-side comparisons, synchronized elevation plots, visibility timelines, shareable scenarios, CSV export, and a printable report. The [NASA Moon](https://solarsystem.nasa.gov/gltf_embed/2366/) globe lets users select a south-pole landing site and assign it to a comparison. The horizon uses the selected UTC sample and the [NASA Earth](https://solarsystem.nasa.gov/gltf_embed/2393/) model to show why a body is visible or occluded. Anyone can use the analyzer and save scenarios locally in their browser.
 
 With FastAPI running as described above, start the frontend:
 
@@ -133,12 +133,11 @@ npm run dev
 
 Open `http://localhost:3000`. When FastAPI is unreachable, the app serves bundled real results for January 7–14, 2027 UTC. Live date changes and custom coordinates require the running API. The [terrain-impact preset](http://localhost:3000/workspace?preset=terrain-impact) gives a reproducible demo.
 
-### Vercel, Cloudflare and Supabase setup
+### Vercel and Cloudflare setup
 
 1. Start FastAPI on the backend host, then expose it through a [named Cloudflare Tunnel](https://developers.cloudflare.com/tunnel/get-started/). Route a stable hostname to `http://127.0.0.1:8000`, and verify `/api/v1/health` through the tunnel. A [Quick Tunnel](https://developers.cloudflare.com/tunnel/get-started/quick-tunnels/) is suitable for a temporary rehearsal while the backend and connector are running.
-2. In the team’s Supabase project, apply `supabase/migrations/202611140001_saved_scenarios.sql`. It limits database access to each account’s own rows. Set the production site URL and allow the app’s `/account` page in Auth redirect URLs. Configure [custom SMTP](https://supabase.com/docs/guides/auth/auth-smtp) for email confirmation outside the Supabase team. The Google sign-in button appears when the [Google provider](https://supabase.com/docs/guides/auth/social-sign-in/auth-google) is enabled.
-3. In Vercel select the Next.js framework and the `frontend` root. Use `npm run build` to run the project's Webpack build. Set `LUNAWINDOW_API_URL` to the Cloudflare hostname, plus `NEXT_PUBLIC_SUPABASE_URL` and `NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY`. Keep database passwords and secret keys in provider settings.
-4. Open the production app as a guest and test a date outside the bundled week. Then verify a cloud save using a confirmed account. Check the 3D atlas and test the preset with the API unavailable.
+2. In Vercel select the Next.js framework and the `frontend` root. Use `npm run build` to run the project's Webpack build. Set `LUNAWINDOW_API_URL` to the Cloudflare hostname.
+3. Verify a comparison for a date outside the bundled example, saving in the browser, and the offline mode for a catalog site.
 
 Native NASA models are included with web-sized textures. Site markers use east-positive lunar coordinates. The horizon renders the angle profile sampled from LOLA and uses apparent body directions from the API. Body sizes and distances in the scene are illustrative. After changing the ephemerides, terrain, or calculation code, run `uv run --locked python -m scripts.sync_frontend_data` from `backend/` to regenerate both frontend datasets. CI checks that the generated files match the backend.
 
