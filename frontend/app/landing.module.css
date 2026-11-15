@@ -91,7 +91,7 @@
 
 .heroCopy p,
 .evidenceCopy > p,
-.team p {
+.team > div > p {
   color: var(--soft);
   font-size: 1rem;
   line-height: 1.65;
@@ -249,25 +249,46 @@
 
 .team {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  align-items: start;
-  gap: clamp(20px, 5vw, 72px);
+  gap: 24px;
   padding-block: 56px;
 }
 
-.team ul {
+.teamMembers {
   display: grid;
-  grid-template-columns: 1fr 1fr;
-  border-top: 1px solid var(--edge);
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 12px;
   margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.team li {
-  border-bottom: 1px solid var(--edge);
-  padding: 12px 12px 12px 0;
+.teamMembers > li {
+  padding: 20px;
+  border: 1px solid var(--edge);
+  border-radius: 12px;
+  background: var(--panel, #161616);
+}
+
+.teamMembers h3 {
+  font-size: clamp(1.05rem, 1.5vw, 1.25rem);
+  line-height: 1.3;
+  font-weight: 500;
+}
+
+.teamMembers p {
+  margin-top: 8px;
+  color: var(--soft);
   font-size: 0.875rem;
+  line-height: 1.5;
+}
+
+@media (max-width: 970px) {
+  .teamMembers { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+}
+
+@media (max-width: 520px) {
+  .teamMembers { grid-template-columns: 1fr; gap: 8px; }
+  .teamMembers > li { padding: 16px; }
 }
 
 .footer {
@@ -316,8 +337,7 @@
   }
 
   .hero,
-  .evidence,
-  .team {
+  .evidence {
     grid-template-columns: 1fr;
     gap: 24px;
   }
@@ -432,19 +452,13 @@
 
 .nav nav a { display: inline-flex; align-items: center; gap: 7px; }
 .evidence, .team { scroll-margin-top: 24px; }
-.team { grid-template-columns: 1fr; gap: 24px; }
 .teamLogo { width: clamp(132px, 20vw, 210px); height: auto; margin-bottom: 12px; }
-.team ul { grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 20px; border-top: 0; }
-.team li { display: flex; flex-direction: column; gap: 6px; padding: 0 0 12px; }
-.team li span { color: var(--soft); }
-.portrait { aspect-ratio: 5 / 4; display: grid; place-items: center; margin-bottom: 8px; border-radius: 6px; border: 1px solid var(--edge); background: #151515; font-family: var(--mono); color: var(--soft); }
 .eventMark img { width: 96px; max-height: 72px; object-fit: contain; }
 .footerLinks { flex-wrap: wrap; justify-content: end; }
 .githubLink { padding: 7px 10px; border: 1px solid var(--edge); border-radius: 5px; color: var(--text); }
 @media (max-width: 760px) {
   .nav nav { display: flex; grid-column: 1 / -1; grid-row: 2; justify-content: space-between; gap: 8px; padding-bottom: 10px; font-size: .75rem; }
   .navActions { grid-column: 2; grid-row: 1; }
-  .team ul { grid-template-columns: repeat(2, minmax(0, 1fr)); }
   .footer { grid-template-columns: 1fr auto; }
   .footerLinks { grid-column: 1 / -1; justify-self: start; justify-content: start; }
 }

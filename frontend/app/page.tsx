@@ -13,10 +13,10 @@ import type { Result } from "@/lib/types";
 import styles from "./landing.module.css";
 
 const team = [
-  ["Nikanchuk Miron", "NM", "Team lead and full-stack developer"],
-  ["Topuzov Ruslan", "TR", "Frontend development and research"],
-  ["Bekturov Shoxruz", "BS", "Backend development and research"],
-  ["Alixonov Amirxon", "AA", "Research, presentation and script"],
+  ["Nikanchuk Miron", "Team lead and full-stack developer"],
+  ["Topuzov Ruslan", "Frontend development and research"],
+  ["Bekturov Shoxruz", "Backend development and research"],
+  ["Alixonov Amirxon", "Research, presentation and script"],
 ];
 
 const terrainPreset = PRESETS.find((preset) => preset.id === "terrain-impact");
@@ -105,10 +105,12 @@ export default function Landing() {
             <h2 id="team-title"><img className={styles.teamLogo} src="/media/gameover.svg" alt="GameOver" /></h2>
             <p>{t("Built for the Lunar Landing Site Navigator challenge.")}</p>
           </div>
-          <ul>{team.map(([name, initials, role]) => <li key={name}>
-            <div className={styles.portrait} aria-hidden="true">{initials}</div>
-            <strong>{name}</strong><span>{t(role)}</span>
-          </li>)}</ul>
+          <ul className={styles.teamMembers}>
+            {team.map(([name, role]) => <li key={name}>
+              <h3>{name}</h3>
+              <p>{t(role)}</p>
+            </li>)}
+          </ul>
         </section>
       </main>
 
