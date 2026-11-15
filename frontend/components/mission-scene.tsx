@@ -4,18 +4,20 @@ import { useEffect, useRef, useState } from "react";
 import {
   AmbientLight, BufferGeometry, Color, DirectionalLight, DoubleSide, Float32BufferAttribute,
   Group, Line, LineBasicMaterial, LineDashedMaterial, LineLoop, Mesh, MeshBasicMaterial, MeshStandardMaterial,
-  OrthographicCamera, PerspectiveCamera, Scene, SphereGeometry, Vector3,
+  OrthographicCamera, PerspectiveCamera, Raycaster, Scene, SphereGeometry, Vector2, Vector3,
 } from "three";
 import {
   circlePoints, disposeScene, loadPlanet, localDirection, moonDirection,
   planetRenderer, positionDirection, terrainProfile,
 } from "@/lib/lunar-scene";
+import { numberLabel } from "@/lib/format";
+import { watchSceneVisibility } from "@/lib/visible-scene";
 import { connectCamera, type CameraFrame } from "@/lib/camera-motion";
-import { loadPolarRelief } from "@/lib/polar-relief";
+import { loadPolarRelief, polarCoordinates, POLAR_UNITS_PER_KM } from "@/lib/polar-relief";
 import { ViewMode, type SceneMode } from "./view-mode";
 import { MaterialSymbol } from "./material-symbol";
 import { useLanguage } from "./language";
-import type { Result, Sample, Site } from "@/lib/types";
+import type { Coordinates, Result, Sample, Site } from "@/lib/types";
 import styles from "./mission-scene.module.css";
 
 const SUN_COLOR = "#edbf78";
@@ -196,6 +198,7 @@ export function MissionScene({ result, sample }: { result: Result; sample: Sampl
 
     const compass = surface.current.querySelector<HTMLElement>("[data-compass]");
     const draw = () => {
+      if (!visibility.active()) return;
       const { sample: current, focus: target } = state.current;
       const { azimuth_deg: az, elevation_deg: el, horizon_elevation_deg: edge } = current[target];
       const { yaw, pitch, zoom } = cameraFrame.current;
@@ -226,6 +229,7 @@ export function MissionScene({ result, sample }: { result: Result; sample: Sampl
       }
       renderer.render(scene, camera);
     };
+    const visibility = watchSceneVisibility(element, draw);
     redraw.current = draw;
     const interaction = connectCamera(surface.current, (frame) => {
       cameraFrame.current = frame;
@@ -260,6 +264,7 @@ export function MissionScene({ result, sample }: { result: Result; sample: Sampl
       interaction.dispose();
       controls.current = null;
       observer.disconnect();
+      visibility.dispose();
       element.removeEventListener("webglcontextlost", unavailable);
       redraw.current = undefined;
       disposeScene(scene);
@@ -315,15 +320,16 @@ export function MissionScene({ result, sample }: { result: Result; sample: Sampl
   </figure>;
 }
 
-type GlobeView = "pole" | "moon";
-
-export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = false }: {
+export function LunarGlobe({ sites, selectedId, onSelect, assignments, shading, picking = false, onPick, hero = false }: {
   sites: Site[]; selectedId?: string; onSelect?: (id: string) => void;
   assignments?: readonly [string | undefined, string | undefined];
+  shading?: { body: "sun" | "earth"; values: Record<string, number> };
+  picking?: boolean;
+  onPick?: (point: Coordinates) => void;
   hero?: boolean;
 }) {
   const { t } = useLanguage();
-  const [view, setView] = useState<GlobeView>(hero ? "moon" : "pole");
+  const view = hero ? "moon" : "pole";
   const [webgl, setWebgl] = useState(false);
   const [panning, setPanning] = useState(false);
   const [poleMode, setPoleMode] = useState<SceneMode>("3d");
@@ -335,11 +341,15 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
   const controls = useRef<ReturnType<typeof connectCamera> | null>(null);
   const cameraFrame = useRef(HOME_CAMERA);
   const tokens = useRef<Record<string, HTMLButtonElement | null>>({});
-  const anchors = useRef<Record<string, HTMLSpanElement | null>>({});
+  const anchors = useRef<Record<string, HTMLButtonElement | null>>({});
   const leaders = useRef<Record<string, HTMLSpanElement | null>>({});
   const redraw = useRef<(() => void) | undefined>(undefined);
   const sitesRef = useRef(sites);
-  const viewRef = useRef(view);
+  const selection = useRef(selectedId);
+  const highlightedSites = useRef(assignments);
+  const onPickRef = useRef(onPick);
+  const poleMarker = useRef<HTMLSpanElement>(null);
+  const scaleBar = useRef<HTMLSpanElement>(null);
   const poleModeRef = useRef(poleMode);
   const idleRotation = useRef(0);
   const zoomStep = 1.24;
@@ -364,11 +374,44 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
     polarLight.visible = false;
     scene.add(polarLight);
 
+    const viewport = surface.current;
     const abortRelief = new AbortController();
+    const grid = new Group();
+    scene.add(grid);
+    const ray = new Raycaster();
+    let intro = 1;
+    let introFrame = 0;
+    let interrupted = false;
+    let introStarted = false;
+    let pointerPosition: { x: number; y: number } | undefined;
+    function rememberPointer(event: PointerEvent) {
+      interrupted = true;
+      if (intro < 1) { intro = 1; draw(); }
+      pointerPosition = { x: event.clientX, y: event.clientY };
+    }
+    function choosePoint(event: MouseEvent) {
+      if (viewport.dataset.picking !== "true" || !polar || !pointerPosition
+        || Math.hypot(event.clientX - pointerPosition.x, event.clientY - pointerPosition.y) > 6
+        || (event.target instanceof Element && event.target.closest("button"))) return;
+      const rect = viewport.getBoundingClientRect();
+      ray.setFromCamera(new Vector2(
+        2 * (event.clientX - rect.left) / rect.width - 1,
+        1 - 2 * (event.clientY - rect.top) / rect.height,
+      ), camera);
+      const point = ray.intersectObject(poleModeRef.current === "3d" ? polar.relief : polar.map)[0]?.point;
+      if (!point) return;
+      const coordinates = polarCoordinates(point);
+      if (!(coordinates.latitude_deg > -90 && coordinates.latitude_deg <= -80)) return;
+      onPickRef.current?.(coordinates);
+    }
+    viewport.addEventListener("pointerdown", rememberPointer);
+    viewport.addEventListener("click", choosePoint);
+
     let polar: Awaited<ReturnType<typeof loadPolarRelief>> | undefined;
     let moonModel: Awaited<ReturnType<typeof loadPlanet>> | undefined;
     const draw = () => {
-      const pole = viewRef.current === "pole";
+      if (!visibility.active()) return;
+      const pole = !hero && intro === 1;
       const { width, height } = element.getBoundingClientRect();
       if (width <= 0 || height <= 0) return;
       const aspect = width / height;
@@ -376,7 +419,9 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
       const raised = pole && poleModeRef.current === "3d";
       const globeFraming = hero ? 1.34 / Math.min(1, aspect) : Math.max(1.16, 1.12 / aspect);
       const polarFraming = raised ? Math.min(1.07, 1.55 / aspect) : Math.min(1.36, 1.87 / aspect);
-      const vertical = pole ? polarFraming / Math.max(1, zoom) : globeFraming / zoom;
+      const glide = 1 - (1 - intro) ** 3;
+      const vertical = pole ? polarFraming / Math.max(1, zoom)
+        : hero ? globeFraming / zoom : globeFraming * (1 - glide) + 0.15 * glide;
       const horizontal = vertical * aspect;
       const offsetX = pole ? Math.max(-2 + horizontal, Math.min(2 - horizontal, x * horizontal * 2)) : x * horizontal * 2;
       const offsetY = pole ? Math.max(-2 + vertical, Math.min(2 - vertical, y * vertical * 2)) : y * vertical * 2;
@@ -390,13 +435,15 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
         camera.position.set(5 * Math.sin(incline) * Math.sin(bearing), 5 * Math.cos(incline), 5 * Math.sin(incline) * Math.cos(bearing));
         camera.up.set(0, raised ? 1 : 0, raised ? 0 : -1);
       } else {
-        const latitude = Math.max(-87, Math.min(87, -24 + pitch));
+        const latitude = hero ? Math.max(-87, Math.min(87, -24 + pitch)) : -24 - 65 * glide;
         camera.position.copy(moonDirection(latitude, 16 - yaw, 4));
         camera.up.set(0, 1, 0);
       }
       camera.lookAt(0, 0, 0);
       camera.updateProjectionMatrix();
       camera.updateMatrixWorld();
+      grid.visible = pole && Boolean(polar);
+      grid.children.forEach((line) => { line.visible = line.userData.raised === raised; });
       polarLight.visible = raised;
       key.visible = !pole;
       if (polar) {
@@ -408,38 +455,65 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
         if (hero) moonModel.rotation.y = idleRotation.current;
       }
 
-      const controls: { x: number; y: number }[] = [];
-      for (const site of sitesRef.current) {
-        const vector = pole ? polar?.point(site.latitude_deg, site.longitude_east_deg, raised)
-          : moonDirection(site.latitude_deg, site.longitude_east_deg);
-        const anchor = anchors.current[site.id];
-        const token = tokens.current[site.id];
-        const leader = leaders.current[site.id];
+      if (poleMarker.current && polar) {
+        const point = skyPoint(polar.point(-90, 0, raised), camera);
+        poleMarker.current.hidden = !pole || !point.onscreen;
+        poleMarker.current.style.left = `${point.x}%`;
+        poleMarker.current.style.top = `${point.y}%`;
+      }
+      if (scaleBar.current) {
+        scaleBar.current.hidden = !pole;
+        scaleBar.current.style.width = `${25 * POLAR_UNITS_PER_KM * width / (2 * horizontal)}px`;
+      }
+
+      const labels: { x: number; y: number; width: number }[] = [];
+      const importance = (site: Site) => site.id === selection.current ? 2 : highlightedSites.current?.includes(site.id) ? 1 : 0;
+      const ordered = [...sitesRef.current].sort((a, b) => importance(b) - importance(a));
+      for (const site of ordered) {
+        const vector = pole ? polar?.point(site.latitude_deg, site.longitude_east_deg, raised) : undefined;
+        const anchor = anchors.current[site.id], token = tokens.current[site.id], leader = leaders.current[site.id];
         if (!anchor || !token || !leader) continue;
         if (!vector) { anchor.hidden = token.hidden = leader.hidden = true; continue; }
         const screen = skyPoint(vector, camera);
-        const visible = screen.onscreen && (pole || vector.dot(camera.position) > 0);
-        anchor.hidden = token.hidden = leader.hidden = !visible;
-        if (!visible) continue;
+        anchor.hidden = token.hidden = leader.hidden = !screen.onscreen;
+        if (!screen.onscreen) continue;
         anchor.style.left = `${screen.x}%`;
         anchor.style.top = `${screen.y}%`;
-        const x = screen.x / 100 * width;
-        const y = screen.y / 100 * height;
-        const outward = screen.x < 52 ? -1 : 1;
-        const labelX = Math.min(width - 22, Math.max(22, x + outward * 25));
-        const offsets = [0, -30, 30, -60, 60];
-        const labelY = offsets.map((offset) => Math.min(height - 17, Math.max(17, y + offset)))
-          .find((candidate) => controls.every((p) => Math.hypot(labelX - p.x, candidate - p.y) >= 29)) ?? y;
-        controls.push({ x: labelX, y: labelY });
-        token.style.left = `${labelX}px`;
-        token.style.top = `${labelY}px`;
+        const x = screen.x / 100 * width, y = screen.y / 100 * height;
+        const tokenWidth = token.offsetWidth;
+        const placements = [0, -28, 28, -56, 56, -84, 84].flatMap((dy) =>
+          (x < width / 2 ? [-1, 1] : [1, -1]).map((side) => ({
+            x: Math.max(tokenWidth / 2 + 4, Math.min(width - tokenWidth / 2 - 4, x + side * (tokenWidth / 2 + 12))),
+            y: Math.max(16, Math.min(height - 16, y + dy)), width: tokenWidth,
+          })));
+        const label = placements.find((p) =>
+          labels.every((other) => Math.abs(p.y - other.y) >= 26 || Math.abs(p.x - other.x) > (p.width + other.width) / 2 + 5));
+        if (!label) { token.hidden = leader.hidden = true; continue; }
+        labels.push(label);
+        token.style.left = `${label.x}px`;
+        token.style.top = `${label.y}px`;
         leader.style.left = `${x}px`;
         leader.style.top = `${y}px`;
-        leader.style.width = `${Math.hypot(labelX - x, labelY - y)}px`;
-        leader.style.transform = `rotate(${Math.atan2(labelY - y, labelX - x)}rad)`;
+        leader.style.width = `${Math.hypot(label.x - x, label.y - y)}px`;
+        leader.style.transform = `rotate(${Math.atan2(label.y - y, label.x - x)}rad)`;
       }
       renderer.render(scene, camera);
     };
+    const visibility = watchSceneVisibility(element, draw);
+    function beginIntro() {
+      if (hero || introStarted || interrupted || !moonModel || !polar || !visibility.active()
+        || window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+      introStarted = true;
+      intro = 0;
+      const start = performance.now();
+      function animate(time: number) {
+        intro = interrupted ? 1 : Math.min(1, (time - start) / 1_050);
+        draw();
+        if (intro < 1 && visibility.active()) introFrame = requestAnimationFrame(animate);
+        else if (intro < 1) intro = 1;
+      }
+      introFrame = requestAnimationFrame(animate);
+    }
     redraw.current = draw;
     const interaction = connectCamera(surface.current, (frame) => {
       cameraFrame.current = frame;
@@ -464,6 +538,7 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
       scene.add(moon);
       resize();
       setWebgl(true);
+      beginIntro();
       if (hero) {
         const viewport = surface.current;
         const reducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -486,7 +561,17 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
       }
       polar = loaded;
       scene.add(loaded.map, loaded.relief);
+      for (const latitude of [-89, -87, -85, -83]) {
+        for (const raised of [false, true]) {
+          const points = Array.from({ length: 144 }, (_, i) => loaded.point(latitude, i * 2.5, raised));
+          const ring = new LineLoop(new BufferGeometry().setFromPoints(points),
+            new LineBasicMaterial({ color: "#eeeeea", transparent: true, opacity: 0.26 }));
+          ring.userData.raised = raised;
+          grid.add(ring);
+        }
+      }
       setHasRelief(true);
+      beginIntro();
       draw();
     }).catch(() => { if (!closed) setReliefFailed(true); });
 
@@ -494,9 +579,13 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
       closed = true;
       abortRelief.abort();
       clearInterval(spin);
+      cancelAnimationFrame(introFrame);
+      viewport.removeEventListener("pointerdown", rememberPointer);
+      viewport.removeEventListener("click", choosePoint);
       interaction.dispose();
       controls.current = null;
       observer.disconnect();
+      visibility.dispose();
       element.removeEventListener("webglcontextlost", unavailable);
       redraw.current = undefined;
       disposeScene(scene);
@@ -506,10 +595,12 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
 
   useEffect(() => {
     sitesRef.current = sites;
-    viewRef.current = view;
+    selection.current = selectedId;
+    highlightedSites.current = assignments;
+    onPickRef.current = onPick;
     poleModeRef.current = poleMode;
     redraw.current?.();
-  }, [sites, view, poleMode]);
+  }, [sites, selectedId, assignments, onPick, poleMode]);
 
   const flatPole = view === "pole" && poleMode === "2d";
   const ready = !rendererFailed && (view === "moon" ? webgl : hasRelief);
@@ -517,10 +608,7 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
 
   return <figure className={styles.figure} aria-label={t(hero ? "Interactive 3D Moon" : "Interactive lunar landing site map")}>
     {!hero && <div className={styles.toolbar}>
-      <div className={styles.switches} aria-label={t("Globe camera")}>
-        <button type="button" aria-pressed={view === "pole"} onClick={() => { controls.current?.reset(); setPanning(false); setView("pole"); }}>{t("South pole")}</button>
-        <button type="button" aria-pressed={view === "moon"} onClick={() => { controls.current?.reset(); setPanning(false); setView("moon"); }}>{t("Globe")}</button>
-      </div>
+      <strong className={styles.placeLabel}>{t("South pole")}</strong>
       {view === "pole" && <ViewMode mode={poleMode} onChange={(mode) => {
         if (poleMode === mode) return;
         controls.current?.reset();
@@ -528,7 +616,7 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
         setPoleMode(mode);
       }} />}
     </div>}
-    <div ref={surface} data-panning={flatPole || panning} data-view={view} className={`${styles.viewport} ${styles.globeViewport} ${hero ? styles.heroGlobe : ""} ${ready ? styles.ready : ""}`}
+    <div ref={surface} data-panning={flatPole || panning} data-view={view} data-picking={picking} className={`${styles.viewport} ${styles.globeViewport} ${hero ? styles.heroGlobe : ""} ${ready ? styles.ready : ""}`}
       tabIndex={ready ? 0 : undefined} role="group" aria-label={t("Moon camera")}>
       <div className={styles.fallback}>
         {view === "pole" && poleMode === "3d" && !ready && <span className={styles.poleUnavailable} role="status">{t(polarStatus)}</span>}
@@ -539,16 +627,21 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
       </div>
       <canvas ref={canvas} className={styles.canvas} aria-hidden="true" />
       <div className={styles.labels} hidden={!ready}>
-        {sites.map((site, index) => <div key={site.id}>
-          <span className={styles.anchor} aria-hidden ref={(node) => { anchors.current[site.id] = node; }} />
+        {sites.map((site) => <div key={site.id}>
+          <button className={styles.anchor} type="button" tabIndex={-1} title={site.name} aria-label={site.name}
+            onClick={() => onSelect?.(site.id)} ref={(node) => { anchors.current[site.id] = node; }}
+            data-layer={shading?.body} style={shading && shading.values[site.id] !== undefined
+              ? { opacity: .25 + .75 * shading.values[site.id] / 100 } : undefined} />
           <span className={styles.leader} aria-hidden ref={(node) => { leaders.current[site.id] = node; }} />
           <button ref={(node) => { tokens.current[site.id] = node; }} type="button"
             className={styles.marker} aria-label={`Select ${site.name}`} title={site.name}
             aria-pressed={selectedId === site.id} onClick={() => onSelect?.(site.id)}>
-            {assignments?.[0] === site.id ? (assignments[1] === site.id ? "A/B" : "A")
-              : assignments?.[1] === site.id ? "B" : index + 1}
+            {assignments?.includes(site.id) && <b>{assignments[0] === site.id ? (assignments[1] === site.id ? "A/B" : "A") : "B"}</b>}
+            {site.name}
           </button>
         </div>)}
+        <span className={styles.poleMarker} ref={poleMarker}>{t("90° S")}</span>
+        <span className={styles.scaleBar} ref={scaleBar}>25 km</span>
       </div>
       {ready && !hero && <div className={styles.cameraTools}>
         {!flatPole && <button type="button" aria-label={t("Pan")} title={t("Pan")} aria-pressed={panning} onClick={() => setPanning(!panning)}><MaterialSymbol name="pan_tool" /></button>}

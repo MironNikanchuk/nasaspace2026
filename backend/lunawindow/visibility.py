@@ -9,6 +9,14 @@ from typing import Literal
 from .ephemeris import Series
 from .terrain import TerrainProfile
 
+DiskVisibility = Literal["disk_any", "disk_center", "disk_full"]
+DISK_MODES: tuple[DiskVisibility, ...] = ("disk_any", "disk_center", "disk_full")
+
+
+def disk_offset(mode: DiskVisibility, body: Literal[0, 1]) -> float:
+    # Nominal angular radii. The terrain altitude is evaluated at the disk center azimuth.
+    return {"disk_any": 1, "disk_center": 0, "disk_full": -1}[mode] * (0.2666, 0.95)[body]
+
 
 @dataclass(frozen=True)
 class Window:
@@ -37,7 +45,11 @@ def visible_windows(times: Sequence[datetime], clearances: Sequence[float]) -> l
 
 
 def terrain_windows(
-    series: Series, interval: Window, terrain: TerrainProfile, body: Literal[0, 1]
+    series: Series,
+    interval: Window,
+    terrain: TerrainProfile,
+    body: Literal[0, 1],
+    offset: float = 0.0,
 ) -> list[Window]:
     first = (interval.start_utc - series.start_utc) // series.step
     last, tail = divmod(interval.end_utc - series.start_utc, series.step)
@@ -47,17 +59,17 @@ def terrain_windows(
         start = series.start_utc + series.step * index
         left, right = series.positions[index][body], series.positions[index + 1][body]
         times.append(start)
-        clearances.append(left.elevation_deg - terrain.horizon_at(left.azimuth_deg))
+        clearances.append(left.elevation_deg + offset - terrain.horizon_at(left.azimuth_deg))
         for fraction, horizon in terrain.knots_between(
             left.azimuth_deg, left.azimuth_delta_to(right)
         ):
             times.append(start + series.step * fraction)
             elevation = left.elevation_deg + fraction * (right.elevation_deg - left.elevation_deg)
-            clearances.append(elevation - horizon)
+            clearances.append(elevation + offset - horizon)
     end_index = last + bool(tail)
     end = series.positions[end_index][body]
     times.append(series.start_utc + series.step * end_index)
-    clearances.append(end.elevation_deg - terrain.horizon_at(end.azimuth_deg))
+    clearances.append(end.elevation_deg + offset - terrain.horizon_at(end.azimuth_deg))
     # Find crossings on the source grid, then clip. Nested queries share the same crossings.
     return simultaneous_windows(visible_windows(times, clearances), [interval])
 

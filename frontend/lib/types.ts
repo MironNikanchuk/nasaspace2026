@@ -1,3 +1,4 @@
+export type DiskVisibility = "disk_any" | "disk_center" | "disk_full";
 export type Horizon = "geometric" | "terrain";
 export type Coordinates = { latitude_deg: number; longitude_east_deg: number };
 export type Scenario = {
@@ -6,6 +7,7 @@ export type Scenario = {
   start_utc: string;
   end_utc: string;
   horizon?: Horizon;
+  visibility?: DiskVisibility;
 };
 export type ScenarioPair = [Scenario, Scenario];
 export type Site = Coordinates & {
@@ -50,7 +52,7 @@ export type Result = {
   ephemeris: string;
   model: {
     horizon: Horizon;
-    visibility: string;
+    visibility: DiskVisibility;
     resolution_m?: number;
     range_m?: number;
     observer_height_m?: number;
@@ -59,6 +61,7 @@ export type Result = {
     sun_visible_percent: number;
     earth_visible_percent: number;
     both_visible_percent: number;
+    longest_sun_window_hours?: number;
     longest_sun_outage_hours: number;
     longest_earth_outage_hours: number;
   };

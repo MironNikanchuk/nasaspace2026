@@ -22,5 +22,93 @@
     "longitude_east_deg": 359.76422,
     "observer_altitude_km": 0,
     "source_site_id": "R23"
+  },
+  {
+    "id": "faustini-rim-a",
+    "name": "Faustini Rim A",
+    "latitude_deg": -87.8897,
+    "longitude_east_deg": 90,
+    "observer_altitude_km": 0,
+    "source_site_id": "LM7"
+  },
+  {
+    "id": "peak-near-shackleton",
+    "name": "Peak Near Shackleton",
+    "latitude_deg": -88.811,
+    "longitude_east_deg": 123.6901,
+    "observer_altitude_km": 0,
+    "source_site_id": "R07"
+  },
+  {
+    "id": "connecting-ridge-extension",
+    "name": "Connecting Ridge Extension",
+    "latitude_deg": -89.0324,
+    "longitude_east_deg": 258.001,
+    "observer_altitude_km": 0,
+    "source_site_id": "SL3"
+  },
+  {
+    "id": "de-gerlache-rim-1",
+    "name": "de Gerlache Rim 1",
+    "latitude_deg": -88.6834,
+    "longitude_east_deg": 292.0679,
+    "observer_altitude_km": 0,
+    "source_site_id": "R11"
+  },
+  {
+    "id": "de-gerlache-rim-2",
+    "name": "de Gerlache Rim 2",
+    "latitude_deg": -88.23,
+    "longitude_east_deg": 295.3716,
+    "observer_altitude_km": 0,
+    "source_site_id": "SL2"
+  },
+  {
+    "id": "de-gerlache-kocher-massif",
+    "name": "de Gerlache-Kocher Massif",
+    "latitude_deg": -85.8296,
+    "longitude_east_deg": 243.678,
+    "observer_altitude_km": 0,
+    "source_site_id": "R42"
+  },
+  {
+    "id": "haworth",
+    "name": "Haworth",
+    "latitude_deg": -86.7639,
+    "longitude_east_deg": 337.223,
+    "observer_altitude_km": 0,
+    "source_site_id": "Haworth"
+  },
+  {
+    "id": "leibnitz-beta-plateau",
+    "name": "Leibnitz Beta Plateau",
+    "latitude_deg": -85.4266,
+    "longitude_east_deg": 31.74276,
+    "observer_altitude_km": 0,
+    "source_site_id": "R20"
+  },
+  {
+    "id": "nobile-rim-1",
+    "name": "Nobile Rim 1",
+    "latitude_deg": -85.4381,
+    "longitude_east_deg": 37.36667,
+    "observer_altitude_km": 0,
+    "source_site_id": "R06"
+  },
+  {
+    "id": "nobile-rim-2",
+    "name": "Nobile Rim 2",
+    "latitude_deg": -83.954,
+    "longitude_east_deg": 58.82206,
+    "observer_altitude_km": 0,
+    "source_site_id": "DM2"
+  },
+  {
+    "id": "amundsen-rim",
+    "name": "Amundsen Rim",
+    "latitude_deg": -84.2287,
+    "longitude_east_deg": 69.44396,
+    "observer_altitude_km": 0,
+    "source_site_id": "DM1"
   }
 ]

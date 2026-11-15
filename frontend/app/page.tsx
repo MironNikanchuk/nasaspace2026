@@ -7,6 +7,8 @@ import { Brand } from "@/components/brand";
 import { Icon } from "@/components/icon";
 import { demoComparison } from "@/lib/demo";
 import { PRESETS } from "@/lib/presets";
+import { percent as visibilityPercent } from "@/lib/format";
+import validation from "@/data/ephemeris-validation.json";
 import type { Result } from "@/lib/types";
 import styles from "./landing.module.css";
 
@@ -20,10 +22,6 @@ const team = [
 const terrainPreset = PRESETS.find((preset) => preset.id === "terrain-impact");
 const terrainExample = terrainPreset && demoComparison(terrainPreset.scenarios);
 const exampleLink = "/workspace?preset=terrain-impact";
-function visibilityPercent(value: number) {
-  return `${(Math.round(value * 100) / 100).toFixed(2)}%`;
-}
-
 function VisibilityRow({ result }: { result: Result }) {
   const { t } = useLanguage();
   const start = Date.parse(result.start_utc);
@@ -46,8 +44,7 @@ function VisibilityRow({ result }: { result: Result }) {
 }
 
 export default function Landing() {
-  const { t, language } = useLanguage();
-  const dateFormat = new Intl.DateTimeFormat(language, { day: "numeric", month: "short", timeZone: "UTC", year: "numeric" });
+  const { t } = useLanguage();
   return (
     <div className={styles.landing}>
       <a className={styles.skip} href="#main">{t("Skip to content")}</a>
@@ -83,7 +80,7 @@ export default function Landing() {
               <figure className={styles.visibility}>
                 <figcaption>
                   <strong>{t("Earth visibility")}</strong>
-                  <span>{dateFormat.formatRange(new Date(terrainExample.scenarios[0].start_utc), new Date(terrainExample.scenarios[0].end_utc)).replace(/[\u2009\u202f\u00a0]/g, " ")} UTC</span>
+                  <span>{terrainExample.scenarios[0].start_utc.slice(0, 10)} / {terrainExample.scenarios[0].end_utc.slice(0, 10)} UTC</span>
                 </figcaption>
                 {terrainExample.scenarios.map((result) => <VisibilityRow key={result.model.horizon} result={result} />)}
               </figure>
@@ -95,6 +92,12 @@ export default function Landing() {
           {terrainExample && <TerrainAnimation frames={terrainExample.scenarios[1].samples
             .filter((sample) => sample.time_utc >= "2027-01-10" && sample.time_utc < "2027-01-13")
             } />}
+          <p className={styles.validation}>
+            {t("Largest difference in elevation between JPL Horizons and NAIF SPICE")}
+            {" "}{Math.max(...Object.values(validation.maximum_elevation_difference_deg)).toFixed(7)}°
+            {" · "}{validation.site_count} {t("catalog sites")} · 2027-01-01 / 2027-04-01 UTC.
+            {" "}<a href="/sources">{t("Sources")}</a>
+          </p>
         </section>
 
         <section className={`${styles.wrap} ${styles.team}`} id="team" aria-labelledby="team-title">

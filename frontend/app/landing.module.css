@@ -394,7 +394,7 @@
   justify-items: center;
   padding-bottom: 12px;
   color: var(--sub);
-  background: url("/media/moon.jpg") center / contain no-repeat;
+  background: url("/media/moon-poster.webp") center / contain no-repeat;
 }
 .terrainDemo {
   min-width: 0;
@@ -412,8 +412,8 @@
   padding: 10px 14px;
 }
 .terrainHead { border-bottom: 1px solid var(--line); }
-.visible { color: #b9e0ff; }
-.occluded { color: #f0c792; }
+.visible { color: var(--earth); }
+.occluded { color: var(--sub); }
 .terrainSky {
   display: block;
   width: 100%;
@@ -454,3 +454,6 @@
 .terrainControls > button { min-width: 36px; }
 .terrainStage { height: clamp(216px, 21vw, 306px); }
 .terrainSky { height: 100%; }
+
+.validation { grid-column: 1 / -1; color: var(--sub); font-size: 13px; }
+.validation a { text-decoration: underline; text-underline-offset: 3px; }

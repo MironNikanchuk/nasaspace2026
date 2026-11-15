@@ -6,7 +6,7 @@ import { Brand } from "./brand";
 import { Icon } from "./icon";
 
 const nav = [
-  ["workspace", "/workspace", "view-grid", "Compare"],
+  ["workspace", "/workspace", "view-grid", "Workspace"],
   ["atlas", "/atlas", "globe-alt", "Atlas"],
   ["saved", "/saved", "bookmark", "Saved"],
   ["account", "/account", "profile", "Account"],
@@ -23,7 +23,7 @@ export function Shell({ current, children }: {
         <Brand />
         <nav aria-label={t("Workspace navigation")}>{nav.map(([id, href, icon, label]) =>
           <Link key={id} className={current === id ? "nav-item active" : "nav-item"} href={href}
-            aria-current={current === id ? "page" : undefined} aria-label={t(label)} title={t(label)}>
+            aria-current={current === id ? "page" : undefined} aria-label={t(label)}>
             <Icon name={icon} width={16} /> <span>{t(label)}</span>
           </Link>)}</nav>
         <div className="app-utilities"><Link href="/#method" className="app-method">{t("Method")}</Link><LanguageSelect /></div>

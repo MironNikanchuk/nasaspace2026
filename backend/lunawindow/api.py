@@ -18,7 +18,9 @@ from .spice_provider import SOURCE_URL as SPICE_SOURCE_URL
 from .spice_provider import SpiceProvider
 from .terrain import TerrainProfile, load_terrain
 from .visibility import (
+    DiskVisibility,
     Window,
+    disk_offset,
     longest_outage,
     simultaneous_windows,
     terrain_windows,
@@ -43,6 +45,7 @@ class Scenario(BaseModel):
     start_utc: AwareDatetime
     end_utc: AwareDatetime
     horizon: Literal["geometric", "terrain"] = "geometric"
+    visibility: DiskVisibility = "disk_center"
 
     @field_validator("start_utc", "end_utc", mode="before")
     @classmethod
@@ -102,13 +105,13 @@ class Catalog(BaseModel):
 class GeometricModel(BaseModel):
     horizon: Literal["geometric"] = "geometric"
     horizon_elevation_deg: Literal[0] = 0
-    visibility: Literal["disk_center"] = "disk_center"
+    visibility: DiskVisibility = "disk_center"
     crossing_method: Literal["linear_interpolation"] = "linear_interpolation"
 
 
 class TerrainModel(BaseModel):
     horizon: Literal["terrain"] = "terrain"
-    visibility: Literal["disk_center"] = "disk_center"
+    visibility: DiskVisibility = "disk_center"
     crossing_method: Literal["piecewise_terrain_interpolation"] = "piecewise_terrain_interpolation"
     source_url: str
     resolution_m: int
@@ -125,13 +128,15 @@ class PositionAtHorizon(BaseModel):
     above_horizon: bool
 
     @classmethod
-    def at(cls, position: Position, terrain: TerrainProfile | None) -> PositionAtHorizon:
+    def at(
+        cls, position: Position, terrain: TerrainProfile | None, offset: float = 0.0
+    ) -> PositionAtHorizon:
         horizon = terrain.horizon_at(position.azimuth_deg) if terrain else 0.0
         return cls(
             azimuth_deg=position.azimuth_deg,
             elevation_deg=position.elevation_deg,
             horizon_elevation_deg=horizon,
-            above_horizon=position.elevation_deg > horizon,
+            above_horizon=position.elevation_deg + offset > horizon,
         )
 
 
@@ -145,6 +150,7 @@ class Summary(BaseModel):
     sun_visible_percent: float
     earth_visible_percent: float
     both_visible_percent: float
+    longest_sun_window_hours: float
     longest_sun_outage_hours: float
     longest_earth_outage_hours: float
 
@@ -196,22 +202,28 @@ def evaluate(
     *,
     custom: bool = False,
 ) -> ScenarioResult:
+    sun_offset, earth_offset = (
+        disk_offset(scenario.visibility, 0),
+        disk_offset(scenario.visibility, 1),
+    )
     samples = [
         SampleResult(
             time_utc=sample.time_utc,
-            sun=PositionAtHorizon.at(sample.sun, terrain),
-            earth=PositionAtHorizon.at(sample.earth, terrain),
+            sun=PositionAtHorizon.at(sample.sun, terrain, sun_offset),
+            earth=PositionAtHorizon.at(sample.earth, terrain, earth_offset),
         )
         for sample in series.samples_between(scenario.start_utc, scenario.end_utc)
     ]
     interval = Window(scenario.start_utc, scenario.end_utc)
     if terrain:
-        sun = terrain_windows(series, interval, terrain, 0)
-        earth = terrain_windows(series, interval, terrain, 1)
+        sun = terrain_windows(series, interval, terrain, 0, sun_offset)
+        earth = terrain_windows(series, interval, terrain, 1, earth_offset)
     else:
         times = [sample.time_utc for sample in samples]
-        sun = visible_windows(times, [sample.sun.elevation_deg for sample in samples])
-        earth = visible_windows(times, [sample.earth.elevation_deg for sample in samples])
+        sun = visible_windows(times, [sample.sun.elevation_deg + sun_offset for sample in samples])
+        earth = visible_windows(
+            times, [sample.earth.elevation_deg + earth_offset for sample in samples]
+        )
     both = simultaneous_windows(sun, earth)
 
     def percent(windows: list[Window]) -> float:
@@ -223,9 +235,11 @@ def evaluate(
         start_utc=scenario.start_utc,
         end_utc=scenario.end_utc,
         model=(
-            TerrainModel.model_validate(terrain, from_attributes=True)
+            TerrainModel.model_validate(terrain, from_attributes=True).model_copy(
+                update={"visibility": scenario.visibility}
+            )
             if terrain
-            else GeometricModel()
+            else GeometricModel(visibility=scenario.visibility)
         ),
         ephemeris="NAIF SPICE DE440" if custom else "JPL Horizons DE441",
         ephemeris_source_url=SPICE_SOURCE_URL if custom else HORIZONS_SOURCE,
@@ -235,6 +249,9 @@ def evaluate(
             sun_visible_percent=percent(sun),
             earth_visible_percent=percent(earth),
             both_visible_percent=percent(both),
+            longest_sun_window_hours=round(
+                max((w.duration_seconds for w in sun), default=0) / 3600, 3
+            ),
             longest_sun_outage_hours=round(longest_outage(sun, interval) / 3600, 3),
             longest_earth_outage_hours=round(longest_outage(earth, interval) / 3600, 3),
         ),
@@ -251,7 +268,7 @@ async def lifespan(app: FastAPI) -> AsyncIterator[None]:
 
 
 app = FastAPI(
-    title="LunaWindow",
+    title="MoonSight",
     version="1.0.0",
     description="Compare Sun and Earth visibility windows from lunar south-pole sites.",
     lifespan=lifespan,

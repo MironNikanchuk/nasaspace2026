@@ -86,3 +86,7 @@
 @media print { .overview { display: none; } }
 
 .controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 10px; }
+
+.overview figcaption span { display: block; }
+.sun { color: var(--sun); }
+.earth { color: var(--earth); }

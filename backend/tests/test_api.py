@@ -23,7 +23,7 @@ def test_catalog_health_and_openapi(client):
     health = client.get("/api/v1/health").json()
     catalog = client.get("/api/v1/sites").json()
     assert health["status"] == "ready"
-    assert health["site_count"] == len(catalog["sites"]) == 3
+    assert health["site_count"] == len(catalog["sites"]) == 14
     assert health["dataset_version"] == catalog["dataset"]["version"]
     assert catalog["sites"][0]["start_utc"] == "2027-01-01T00:00:00Z"
     assert catalog["sites"][0]["end_utc"] == "2027-04-01T00:00:00Z"
@@ -134,16 +134,16 @@ def test_terrain_crossing_is_consistent_across_nested_intervals(client):
     ] == crossing.isoformat().replace("+00:00", "Z")
 
 
-def test_terrain_is_available_only_for_profiled_sites(client):
+def test_catalog_sites_have_terrain_profiles(client):
     response = client.post(
         "/api/v1/compare",
         json={"scenarios": [DEMO, {**DEMO, "site_id": "malapert-massif", "horizon": "terrain"}]},
     )
-    assert response.status_code == 422
-    assert response.json()["detail"][0]["type"] == "terrain_unavailable"
+    assert response.status_code == 200
+    assert response.json()["scenarios"][1]["model"]["horizon"] == "terrain"
 
     catalog = client.get("/api/v1/sites").json()
-    assert catalog["sites"][0]["supported_horizons"] == ["geometric", "terrain"]
+    assert all(site["supported_horizons"] == ["geometric", "terrain"] for site in catalog["sites"])
     response = client.post(
         "/api/v1/compare", json={"scenarios": [DEMO, {**DEMO, "horizon": "terrain"}]}
     )
@@ -165,3 +165,23 @@ def test_coordinate_input_when_spice_is_disabled(monkeypatch):
         response = test_client.post("/api/v1/compare", json={"scenarios": [DEMO, custom]})
         assert response.status_code == 422
         assert response.json()["detail"][0]["type"] == "custom_coordinates_unavailable"
+
+
+def test_disk_visibility_modes_bound_center_measurement(client):
+    horizons = {"horizon": "terrain", **DEMO}
+    modes = ("disk_any", "disk_center", "disk_full")
+    summaries = []
+    for mode in modes:
+        answer = client.post(
+            "/api/v1/compare",
+            json={
+                "scenarios": [{**horizons, "visibility": mode}, horizons],
+            },
+        )
+        assert answer.status_code == 200
+        result = answer.json()["scenarios"][0]
+        assert result["model"]["visibility"] == mode
+        summaries.append(result["summary"])
+    assert summaries[0]["earth_visible_percent"] > summaries[1]["earth_visible_percent"]
+    assert summaries[1]["earth_visible_percent"] > summaries[2]["earth_visible_percent"]
+    assert summaries[1]["longest_sun_window_hours"] > 0

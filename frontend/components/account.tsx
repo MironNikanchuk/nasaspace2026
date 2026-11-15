@@ -52,31 +52,13 @@ export function Account({ initialMode = "sign-in" }: { initialMode?: "sign-in" |
         <Link className="button" href="/saved">{t("Saved scenarios")}</Link>
       </div>
     </section> : !ready ? <p role="status" className="feedback">{t("Checking session…")}</p> : user && !passwordOnly ?
-      <section className="panel account-panel"><h2>{t("Signed in")}</h2><p>{user.email}</p>
-        <dl className="profile-details"><div><dt>{t("Registered")}</dt><dd>{new Intl.DateTimeFormat(language, { dateStyle: "medium", timeZone: "UTC" }).format(new Date(user.created_at))}</dd></div></dl>
-        <form className="account-form" key={user.id} onSubmit={async (event) => {
-          event.preventDefault();
-          const data = new FormData(event.currentTarget);
-          setBusy(true); setError(""); setMessage("");
-          try {
-            const { error: issue } = await auth.auth.updateUser({ data: {
-              moonsight_role: String(data.get("role")), moonsight_location: String(data.get("location")).trim(),
-            } });
-            if (issue) setError(issue.message);
-            else setMessage("Profile saved.");
-          } catch { setError("Could not reach the account service."); }
-          finally { setBusy(false); }
-        }}>
-          <label className="field">{t("Role")}<select name="role" defaultValue={user.user_metadata.moonsight_role ?? ""}>
-            <option value="">—</option>
-            <option value="student">{t("Student")}</option><option value="scientist">{t("Scientist")}</option>
-            <option value="educator">{t("Educator")}</option><option value="enthusiast">{t("Space enthusiast")}</option>
-          </select></label>
-          <label className="field">{t("Location")}<input name="location" autoComplete="address-level2" maxLength={100} defaultValue={user.user_metadata.moonsight_location ?? ""} /></label>
-          <button className="button" type="submit" disabled={busy}>{t("Save profile")}</button>
-        </form>
-        <div className="action-row"><Link className="button button-primary" href="/saved">{t("Saved scenarios")}</Link>
-          <button className="button" type="button" onClick={() => changeMode("password")} disabled={busy}>{t("Change password")}</button>
+      <section className="panel account-panel"><h2>{t("Account details")}</h2>
+        <dl className="profile-details">
+          <div><dt>{t("Email")}</dt><dd>{user.email}</dd></div>
+          <div><dt>{t("Registered")}</dt><dd>{new Intl.DateTimeFormat(language, { dateStyle: "medium", timeZone: "UTC" }).format(new Date(user.created_at))}</dd></div>
+        </dl>
+        <div className="action-row"><Link className="button" href="/saved">{t("Saved scenarios")}</Link>
+          <button className="button button-primary" type="button" onClick={() => changeMode("password")} disabled={busy}>{t("Change password")}</button>
           <button className="button" disabled={busy} onClick={async () => {
             setBusy(true); setError("");
             try {
@@ -141,7 +123,7 @@ export function Account({ initialMode = "sign-in" }: { initialMode?: "sign-in" |
         </form>
         {mode === "sign-in" && <button type="button" className="text-link account-link" disabled={busy} onClick={() => changeMode("forgot")}>{t("Forgot password?")}</button>}
         {mode === "password" ? <button className="text-link account-link" type="button" onClick={() => changeMode("sign-in")}>{t("Cancel")}</button>
-          : <Link className="text-link" href="/workspace">{t("Continue as guest")} <Icon name="arrow-right" /></Link>}
+          : <Link className="button guest-entry" href="/workspace">{t("Continue as guest")} <Icon name="arrow-right" /></Link>}
       </section>}
     {error && <p className="feedback error" role="alert">{t(error)}</p>}
     {message && <p className="feedback" role="status">{t(message)}</p>}

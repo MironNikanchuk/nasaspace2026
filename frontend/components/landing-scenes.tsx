@@ -2,6 +2,7 @@
 
 import dynamic from "next/dynamic";
 import { useEffect, useRef, useState } from "react";
+import { numberLabel, utcLabel } from "@/lib/format";
 import type { Sample } from "@/lib/types";
 import { BodyView } from "./body-view";
 import { ViewMode, type SceneMode } from "./view-mode";
@@ -67,7 +68,7 @@ export function TerrainAnimation({ frames }: { frames: Sample[] }) {
     <div ref={stage} className={styles.terrainStage}>{mode === "3d"
       ? <BodyView sample={frame} site="Connecting Ridge" terrain={terrain} />
       : <svg viewBox="0 0 600 244" className={styles.terrainSky} role="img"
-      aria-label={`Earth elevation ${frame.earth.elevation_deg.toFixed(2)}°, horizon elevation ${height.toFixed(2)}°`}>
+      aria-label={`Earth elevation ${numberLabel(frame.earth.elevation_deg)}°, horizon elevation ${numberLabel(height)}°`}>
       <defs>
         <linearGradient id="ridge-fill" x1="0" x2="0" y1="0" y2="1">
           <stop offset="0" stopColor="#454943" /><stop offset="1" stopColor="#141817" />
@@ -78,7 +79,7 @@ export function TerrainAnimation({ frames }: { frames: Sample[] }) {
       <line x1="0" y1={y(0)} x2="600" y2={y(0)} stroke="#d5d8d2" strokeDasharray="5 6" opacity=".58" />
       <text x="18" y={y(0) + 20} fill="#edeee4" fontSize="16">{t("0° horizontal")}</text>
       <line x1="306" x2="306" y1={earthY} y2={ridgeY} stroke="#abdafa" strokeDasharray="3 4" />
-      <image href="/media/moon.jpg" x="26" y="160" width="58" height="58" style={{ clipPath: "circle(43%)" }} />
+      <image href="/media/moon-poster.webp" x="26" y="160" width="58" height="58" style={{ clipPath: "circle(43%)" }} />
       <text x="92" y="198" fill="#edeee4" fontSize="16">{t("Moon")}</text>
       <image href="/media/visibility-sun.webp" x="453" y={y(frame.sun.elevation_deg) - 34} width="36" height="36" style={{ clipPath: "circle(47%)" }} />
       <text x="493" y={y(frame.sun.elevation_deg) - 14} fill="#ffd09a" fontSize="16">{t("Sun")}</text>
@@ -89,8 +90,8 @@ export function TerrainAnimation({ frames }: { frames: Sample[] }) {
       </g>
     </svg>}</div>
     <div className={styles.terrainReadings}>
-      <span>{t("Earth’s elevation angle")} <strong>{frame.earth.elevation_deg.toFixed(2)}°</strong></span>
-      <span>{t("Horizon toward Earth")} <strong>{height.toFixed(2)}°</strong></span>
+      <span>{t("Earth’s elevation angle")} <strong>{numberLabel(frame.earth.elevation_deg)}°</strong></span>
+      <span>{t("Horizon toward Earth")} <strong>{numberLabel(height)}°</strong></span>
     </div>
     <div className={styles.terrainControls}>
       <div className="segmented" aria-label={t("Horizon model")}>
@@ -100,7 +101,7 @@ export function TerrainAnimation({ frames }: { frames: Sample[] }) {
       <button className="button button-small" type="button" aria-label={t(playing ? "Pause" : "Play")} title={t(playing ? "Pause" : "Play")} onClick={() => setPlaying(!playing)}><MaterialSymbol name={playing ? "pause" : "play_arrow"} /></button>
     </div>
     <label className={styles.terrainTime}>
-      <span>{frame.time_utc.slice(0, 16).replace("T", " ")} UTC</span>
+      <span>{utcLabel(frame.time_utc)}</span>
       <input aria-label={t("Terrain example time")} aria-valuetext={frame.time_utc} type="range"
         min={0} max={frames.length - 1} value={index}
         onChange={(event) => { setPlaying(false); setIndex(Number(event.target.value)); }} />

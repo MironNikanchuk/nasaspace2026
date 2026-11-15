@@ -1,3 +1,4 @@
+import { numberLabel } from "@/lib/format";
 import { useState } from "react";
 import { BodyView } from "./body-view";
 import { ViewMode, type SceneMode } from "./view-mode";
@@ -18,7 +19,7 @@ function Body({ name, position }: { name: "Sun" | "Earth"; position: Position })
   const { t } = useLanguage();
   const margin = clearance(position);
   const rounded = Number(margin.toFixed(2));
-  const angle = `${rounded > 0 ? "+" : ""}${rounded}°`;
+  const angle = `${rounded > 0 ? "+" : ""}${numberLabel(rounded)}°`;
   return <div className={name === "Sun" ? styles.sun : styles.earth}>
     <img className={styles.bodyPortrait} src={name === "Sun" ? "/media/visibility-sun.webp" : "/media/visibility-earth.webp"} width="384" height="384" alt="" />
     <div className={styles.bodyLabel}>
@@ -53,12 +54,12 @@ export function VisibilityOverview({ sample, site, view, select }: {
       </svg>
       <Body name="Sun" position={sample.sun} />
       <div className={styles.moon}>
-        <img className={styles.bodyPortrait} src="/media/moon.jpg" width="720" height="720" alt="" />
+        <img className={styles.bodyPortrait} src="/media/moon-poster.webp" width="720" height="720" alt="" />
         <div className={styles.bodyLabel}><strong>{t("Moon")}</strong><span>{site}</span></div>
       </div>
       <Body name="Earth" position={sample.earth} />
       </>}
     </div>
-    <figcaption>{t("Angles are relative to the local horizon. Bodies and distances are not to scale.")}</figcaption>
+    <figcaption>{t("Angles are relative to the local horizon. Bodies and distances are not to scale.")} <span>{t("Left and right are schematic. Azimuth clockwise from north:")} {t("Sun")} {numberLabel(sample.sun.azimuth_deg, 1)}° · {t("Earth")} {numberLabel(sample.earth.azimuth_deg, 1)}°</span></figcaption>
   </figure>;
 }

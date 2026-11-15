@@ -25,10 +25,10 @@
   --line: #303030;
   --ink: #efefed;
   --sub: #bcbcbc;
-  --muted: #a5a5a5;
+  --muted: #b0b0b0;
   --accent: #d7d7d4;
-  --sun: #dfdfdc;
-  --earth: #a0a0a3;
+  --sun: #edbf78;
+  --earth: #a8c9df;
   --overlap: #818187;
   --sans: "Instrument Sans", system-ui, sans-serif;
   --display: "Instrument Serif", Georgia, serif;
@@ -54,7 +54,7 @@ img { display: block; max-width: 100%; }
   min-height: 40px;
   padding: 0 12px;
   border: 1px solid var(--line);
-  border-radius: 5px;
+  border-radius: 999px;
   color: var(--ink);
   background: transparent;
   font-size: 14px;
@@ -357,3 +357,64 @@ img { display: block; max-width: 100%; }
 }
 
 .body-view-loading { display: grid; place-items: center; height: 100%; color: var(--sub); font-size: 13px; }
+
+.segmented, .segmented button, .view-mode, .view-mode button { border-radius: 999px; }
+.compact-heading { margin-bottom: 16px; }
+.compact-heading h1 { font-size: clamp(1.8rem, 4vw, 2.45rem); }
+.preset-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 16px; }
+.preset-chip { align-items: flex-start; height: auto; min-width: 0; flex-direction: column; text-align: start; white-space: normal; gap: 1px; padding: 8px 14px; }
+.preset-chip small { color: var(--sub); font-size: 12px; }
+.preset-chip[aria-pressed="true"] { background: #252525; border-color: #656565; }
+.date-fields { display: grid; gap: 6px; min-width: 0; width: 100%; }
+.date-options { display: flex; flex-wrap: wrap; align-items: center; justify-content: space-between; gap: 8px; color: var(--sub); }
+.date-options > div { display: flex; gap: 4px; flex-wrap: wrap; }
+.date-options .button { min-height: 28px; }
+.terrain-badge, .measurement-note { color: var(--sub); font-size: 13px; }
+.measurement-note { margin: 6px 0; }
+.controls-footer .field { max-width: 100%; }
+.controls-footer > p[role="status"] { color: var(--sub); }
+.result-panel .panel-title { min-height: 72px; }
+.result-panel .panel-title p { overflow-wrap: anywhere; }
+.result-panel .metric-row { min-height: 68px; }
+.result-panel .measurement-note { min-height: 38px; }
+.elevation-chart { height: 222px; }
+.chart-legend { display: flex; align-items: center; flex-wrap: wrap; gap: 3px 12px; font-size: 13px; color: var(--sub); }
+.chart-legend span { display: inline-flex; gap: 6px; align-items: center; }
+.chart-legend i { width: 18px; border-top: 2px solid var(--sun); }
+.chart-legend .earth-key { border-color: var(--earth); border-top-style: dashed; }
+.chart-legend .horizon-key { border-color: var(--muted); border-top-style: dotted; }
+.track-cursor { position: absolute; height: 100%; border-left: 1px solid #fff; }
+.timeline-axis { margin-left: 63px; display: flex; justify-content: space-between; gap: 2px; font-size: clamp(9px, 1.3vw, 12px); color: var(--sub); }
+.metric-row strong, .atlas-site-list small, .time-control span, .scenario-dates input, .timeline-axis, .measurement-note {
+  font-family: var(--sans); font-variant-numeric: tabular-nums;
+}
+.account-link, .account-panel .text-link { text-decoration: underline; text-underline-offset: 4px; }
+.guest-entry { align-self: start; font-weight: 600; }
+.window-search { margin-top: 24px; padding: 16px; display: grid; justify-items: start; gap: 10px; }
+.window-search h2 { font-size: 23px; }
+.window-search p { color: var(--sub); }
+.window-rank { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 215px), 1fr)); width: 100%; gap: 12px; padding-left: 20px; }
+.window-rank li > * { display: block; }
+.window-rank small, .window-rank span { color: var(--sub); font-size: 13px; font-variant-numeric: tabular-nums; }
+.window-rank small { overflow-wrap: anywhere; }
+.window-table { max-width: 100%; width: 100%; overflow-x: auto; }
+.window-table table { border-spacing: 2px; font-size: 12px; }
+.window-table th { color: var(--sub); font-weight: 400; text-align: start; white-space: nowrap; }
+.window-table thead th:not(:first-child) span { writing-mode: vertical-rl; transform: rotate(180deg); text-align: end; }
+.window-table tbody th { position: sticky; left: 0; background: var(--panel); padding-right: 8px; }
+.window-table td { width: 16px; min-width: 16px; height: 18px; }
+.sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+@media (max-width: 760px) { .elevation-chart { height: 176px; } }
+@media print { .window-search { display: none; } }
+
+.atlas-list { list-style: none; padding: 0; max-height: 510px; overflow: auto; padding-inline: 3px; }
+.atlas-list li { display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); gap: 4px; }
+.atlas-list small { color: var(--sub); font-variant-numeric: tabular-nums; font-size: 12px; }
+.atlas-site-name { background: transparent; text-align: start; border: 0; padding: 9px 6px; color: var(--ink); display: grid; }
+.atlas-site-name[aria-pressed="true"] > span { text-decoration: underline; text-underline-offset: 4px; }
+.atlas-assign, .atlas-layer { display: flex; align-items: center; flex-wrap: wrap; gap: 4px; }
+.atlas-layer, .atlas-pick { margin: 8px 0; color: var(--sub); gap: 8px; }
+.atlas-assign .button { min-width: 31px; min-height: 31px; padding: 0 7px; }
+.atlas-assign [aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.sun-reading { color: var(--sun); }
+.earth-reading { color: var(--earth); }

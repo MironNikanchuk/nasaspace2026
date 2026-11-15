@@ -6,6 +6,8 @@ import {
   Group, Line, LineBasicMaterial, LineDashedMaterial, Mesh, MeshBasicMaterial, MeshStandardMaterial,
   OrthographicCamera, PlaneGeometry, Scene, ShaderMaterial, SphereGeometry, Vector3,
 } from "three";
+import { numberLabel } from "@/lib/format";
+import { watchSceneVisibility } from "@/lib/visible-scene";
 import { connectCamera, type CameraFrame } from "@/lib/camera-motion";
 import { disposeScene, loadPlanet, planetRenderer } from "@/lib/lunar-scene";
 import type { Position, Sample } from "@/lib/types";
@@ -157,7 +159,7 @@ export default function ThreeBodyScene({ sample, site, terrain }: {
     }
 
     function draw() {
-      if (!element || !renderer || closed) return;
+      if (!element || !renderer || closed || !visibility.active()) return;
       const { width, height } = element.getBoundingClientRect();
       if (!width || !height) return;
       const { sample, terrain } = state.current;
@@ -221,6 +223,7 @@ export default function ThreeBodyScene({ sample, site, terrain }: {
       if (moving) schedule();
     }
 
+    const visibility = watchSceneVisibility(stage, draw);
     const interaction = connectCamera(stage, (next) => { Object.assign(frame, next); draw(); }, { minZoom: .85, maxZoom: 1.14 });
     const resize = new ResizeObserver(() => {
       renderer.setSize(element.clientWidth, element.clientHeight, false);
@@ -236,6 +239,7 @@ export default function ThreeBodyScene({ sample, site, terrain }: {
       cancelAnimationFrame(animation);
       interaction.dispose();
       resize.disconnect();
+      visibility.dispose();
       element.removeEventListener("webglcontextlost", contextLost);
       redraw.current = null;
       disposeScene(scene);
@@ -264,7 +268,7 @@ export default function ThreeBodyScene({ sample, site, terrain }: {
         return <span key={name}>
           <strong style={{ color }}>{t(name)}</strong>
           <small>{position && angle !== undefined
-            ? `${angle > 0 ? "+" : ""}${angle.toFixed(2)}° · ${t(visible ? "Visible" : "Hidden")}` : site}</small>
+            ? `${angle > 0 ? "+" : ""}${numberLabel(angle)}° · ${t(visible ? "Visible" : "Hidden")}` : site}</small>
         </span>;
       })}
     </div>

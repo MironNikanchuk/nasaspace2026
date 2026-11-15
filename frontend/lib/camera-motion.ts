@@ -56,6 +56,7 @@ export function connectCamera(
   }
 
   function start(event: PointerEvent) {
+    if (surface.dataset.picking === "true") return;
     if (event.button !== 0 || (event.target instanceof Element && event.target.closest("button"))) return;
     if (pointer !== undefined) return;
     pointer = event.pointerId;

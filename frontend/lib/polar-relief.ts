@@ -58,3 +58,13 @@ export async function loadPolarRelief(signal: AbortSignal) {
 
   return { map, relief, point };
 }
+
+export function polarCoordinates(point: Vector3) {
+  const radius = Math.hypot(point.x, point.z) * METERS_PER_UNIT;
+  return {
+    latitude_deg: -90 + 2 * Math.atan(radius / (2 * LUNAR_RADIUS)) / decimal,
+    longitude_east_deg: (Math.atan2(point.x, -point.z) / decimal + 360) % 360,
+  };
+}
+
+export const POLAR_UNITS_PER_KM = 1_000 / METERS_PER_UNIT;

@@ -14,7 +14,6 @@ export default function Privacy() {
     </section>
     <section>
       <h2>{t("Accounts")}</h2>
-      <p>{t("Role and location are optional and saved with your account profile.")}</p>
       <p>{t("If you sign in with Google, Supabase Auth receives your Google account identifier, email address, and basic profile information to create and identify your MoonSight account. MoonSight displays your email on the Account page. Supabase stores the scenarios you save while signed in and restricts access to your account.")}</p>
       <p>{t("MoonSight requests basic sign-in information from Google. You can revoke app access from your Google account settings and remove saved scenarios on the Saved page.")}</p>
     </section>

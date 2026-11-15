@@ -20,14 +20,14 @@ test("proxy returns FastAPI results matching the bundled preset and supports oth
   expect(result.scenarios[1].windows.sun[0].start_utc).toMatch(/^2027-02-04T02:14:58/);
 });
 
-test("demo results are marked in the UI, exported CSV and printable report", async ({ page, request }) => {
+test("offline Q1 results are marked in the UI, exported CSV and printable report", async ({ page, request }) => {
   const offline = "http://127.0.0.1:3182";
   // Keep the catalog live while comparison requests have no upstream.
   await page.route("**/api/lunar/sites", async (route) => {
     await route.fulfill({ response: await request.get("/api/lunar/sites") });
   });
   await page.goto(`${offline}/workspace?preset=terrain-impact`);
-  const source = page.getByText(/Bundled demo data · January/);
+  const source = page.getByText("Offline results · Bundled JPL Horizons data");
   await expect(source).toBeVisible();
   await page.getByText("Export", { exact: true }).click();
   const pending = page.waitForEvent("download");
@@ -35,7 +35,7 @@ test("demo results are marked in the UI, exported CSV and printable report", asy
   const download = await pending;
   const csv = await readFile((await download.path())!, "utf8");
   expect(csv.split("\n")[0]).toContain('"data_source"');
-  expect(csv.split("\n")[1]).toContain('"Bundled demo data"');
+  expect(csv.split("\n")[1]).toContain('"Bundled ephemerides"');
   await page.emulateMedia({ media: "print" });
   await expect(source).toBeVisible();
   const preset = PRESETS[0];
@@ -44,6 +44,14 @@ test("demo results are marked in the UI, exported CSV and printable report", asy
     data: { scenarios: preset.scenarios.map((scenario) => ({ ...scenario, ...dates })) },
   });
   expect(result.status()).toBe(503);
+  await page.emulateMedia({ media: "screen" });
+  await page.getByLabel("Start (UTC)").fill("2027-02-04T02:00:00Z");
+  await page.getByRole("button", { name: "24 h" }).click();
+  await expect(page.getByLabel("End (UTC)")).toHaveValue("2027-02-05T02:00:00Z");
+  await page.getByLabel("Visible when").selectOption("disk_any");
+  await page.getByRole("button", { name: "Run comparison" }).click();
+  await expect(page.getByText("Any part of the disk · Airless sky · 30 min samples", { exact: false })).toHaveCount(2);
+  await expect(page.getByRole("figure", { name: "Sun and Earth from the Moon" })).toBeVisible();
 });
 
 test("guest can save and delete a scenario", async ({ page }) => {
@@ -65,14 +73,14 @@ test("the three-body view follows the scenario switch and shared time controls",
   await expect(overview.getByRole("button", { name: "3D", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(overview.getByText("Moon", { exact: true })).toBeVisible();
   await expect(overview.getByText("Connecting Ridge", { exact: true })).toBeVisible();
-  await expect(overview.getByText(/-5.35° · Hidden/)).toBeVisible();
+  await expect(overview.getByText(/−5.35° · Hidden/)).toBeVisible();
   await overview.getByRole("button", { name: "Scenario B" }).click();
   await expect(overview.getByText("Malapert Massif", { exact: true })).toBeVisible();
   const time = page.getByRole("slider", { name: "Time (UTC)" });
   await time.press("End");
   await expect(overview.getByText(/\+8.10° · Visible/)).toBeVisible();
   await overview.getByRole("button", { name: "2D" }).click();
-  await expect(overview.getByText(/\+8.1° · Visible/)).toBeVisible();
+  await expect(overview.getByText(/\+8.10° · Visible/)).toBeVisible();
   await page.getByRole("button", { name: "Replay", exact: true }).click();
   await expect.poll(async () => Number(await time.inputValue())).toBeGreaterThan(0);
   await page.getByRole("button", { name: "Pause", exact: true }).click();
@@ -100,7 +108,7 @@ test("language selection persists across the landing page, atlas and sources", a
   await page.getByRole("link", { name: "Лунный атлас", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Лунный атлас", exact: true })).toBeVisible();
   const atlas = page.getByRole("figure", { name: "Интерактивная карта мест посадки" });
-  await expect(atlas.getByRole("button", { name: "Южный полюс" })).toHaveAttribute("aria-pressed", "true");
+  await expect(atlas.getByText("Южный полюс", { exact: true })).toBeVisible();
   await expect(atlas.getByRole("button", { name: "3D", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Язык" }).click();
   await page.getByRole("button", { name: "O‘zbekcha" }).click();
@@ -110,4 +118,17 @@ test("language selection persists across the landing page, atlas and sources", a
   await expect(page.locator("html")).toHaveAttribute("lang", "uz");
   await expect(page.getByRole("link", { name: /GitHub repozitoriysi/ })).toHaveAttribute("href", /github\.com/);
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth)).toBeTruthy();
+});
+
+test("window search ranks three windows and opens a matching comparison", async ({ page }) => {
+  await page.goto("/workspace");
+  const search = page.getByRole("region", { name: "Find a 6.5-day window" });
+  await search.getByRole("button", { name: "Search catalog" }).click();
+  await expect(search.getByRole("link", { name: "Compare this window" })).toHaveCount(3);
+  await expect(search.getByRole("table").getByRole("row")).toHaveCount(15);
+  const href = await search.getByRole("link", { name: "Compare this window" }).first().getAttribute("href");
+  const pair = JSON.parse(new URL(href!, "http://test.local").searchParams.get("scenario")!);
+  expect(Date.parse(pair[0].end_utc) - Date.parse(pair[0].start_utc)).toBe(6.5 * 86_400_000);
+  await search.getByRole("link", { name: "Compare this window" }).first().click();
+  await expect(page.getByRole("heading", { name: "Results" })).toBeVisible();
 });

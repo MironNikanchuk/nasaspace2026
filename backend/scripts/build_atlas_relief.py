@@ -21,7 +21,9 @@ MEDIA = Path(__file__).resolve().parents[2] / "frontend" / "public" / "media"
 def build_atlas(dem: Path):
     with rasterio.open(dem) as source:
         cut = from_bounds(-HALF_SPAN_M, -HALF_SPAN_M, HALF_SPAN_M, HALF_SPAN_M, source.transform)
-        dem = source.read(1, window=cut, out_shape=(TEXTURE_SIZE, TEXTURE_SIZE), resampling=Resampling.bilinear)
+        dem = source.read(
+            1, window=cut, out_shape=(TEXTURE_SIZE, TEXTURE_SIZE), resampling=Resampling.bilinear
+        )
         if not np.isfinite(dem).all():
             raise ValueError("The selected area contains missing elevation data")
         # A broad fill light keeps crater floors legible at low viewing angles.
@@ -39,9 +41,17 @@ def build_atlas(dem: Path):
         input=header + pixels,
         check=True,
     )
-    (MEDIA / "lola-relief.json").write_text(json.dumps({
-        "halfSpanM": HALF_SPAN_M, "size": GRID_SIZE, "heights": heights.ravel().tolist(),
-    }, separators=(",", ":")) + "\n")
+    (MEDIA / "lola-relief.json").write_text(
+        json.dumps(
+            {
+                "halfSpanM": HALF_SPAN_M,
+                "size": GRID_SIZE,
+                "heights": heights.ravel().tolist(),
+            },
+            separators=(",", ":"),
+        )
+        + "\n"
+    )
 
 
 if __name__ == "__main__":

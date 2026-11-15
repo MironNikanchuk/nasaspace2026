@@ -91,10 +91,7 @@ def main() -> None:
             and raster.res == (PIXEL_M, PIXEL_M)
         ):
             raise ValueError("Expected the 80 m NASA LOLA lunar south polar stereographic DEM")
-        profiles = {
-            site_id: horizon(raster, sites[site_id])
-            for site_id in ("connecting-ridge", "shackleton-rim")
-        }
+        profiles = {site_id: horizon(raster, site) for site_id, site in sites.items()}
     payload = {
         "source_url": SOURCE_URL,
         "resolution_m": PIXEL_M,

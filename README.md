@@ -1,6 +1,6 @@
 # MoonSight
 
-MoonSight is a FastAPI backend for comparing Sun and Earth visibility from lunar south-pole sites for the [NASA Space Apps Lunar Landing Site Navigator challenge](https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/).
+MoonSight compares Sun and Earth visibility at 14 lunar south-pole sites and ranks 6.5-day windows. [Open MoonSight](https://nasa.blizzard.guru/) or [try the terrain example](https://nasa.blizzard.guru/workspace?preset=terrain-impact). Built for the [NASA Space Apps Lunar Landing Site Navigator challenge](https://www.spaceappschallenge.org/2026/challenges/lunar-landing-site-navigator/).
 
 ## Run locally
 
@@ -12,7 +12,7 @@ uv sync --locked --python 3.12
 uv run --locked uvicorn lunawindow.api:app --port 8000
 ```
 
-Open [interactive API documentation](http://127.0.0.1:8000/docs). Once dependencies are installed, startup and comparisons work offline. The bundled catalog covers Connecting Ridge, Shackleton Rim, and Malapert Massif from **2027-01-01 through 2027-04-01 UTC** at a 30-minute sample cadence.
+Open [interactive API documentation](http://127.0.0.1:8000/docs). Once dependencies are installed, startup and comparisons work offline. The bundled catalog covers 14 reference points from NASA’s Lunar Surface Data Book from **2027-01-01 through 2027-04-01 UTC** at a 30-minute sample cadence.
 
 ## Frontend integration
 
@@ -38,11 +38,11 @@ curl -fsS http://127.0.0.1:8000/api/v1/compare \
   }'
 ```
 
-In this example, the Sun center is above the geometric horizon for 100% of the interval at Connecting Ridge and 0% at Malapert Massif. The Earth center is above the horizon for 40.760% and 87.541% of the interval, respectively. Use `LUNAWINDOW_CORS_ORIGINS` with a comma-separated list of exact frontend origins when serving the UI from a different origin.
+In this example, the Sun center is above the geometric horizon for 100% of the interval at Connecting Ridge and 0% at Malapert Massif. The Earth center is above the horizon for 40.76% and 87.54% of the interval, respectively. Use `LUNAWINDOW_CORS_ORIGINS` with a comma-separated list of exact frontend origins when serving the UI from a different origin.
 
 ## Method and NASA sources
 
-Azimuth runs clockwise from north. The dataset stores apparent, airless azimuth and elevation for the Sun center (10) and Earth center (399), observed from each catalog point in the Moon's MEAN_ME frame. The geometric horizon is 0° relative to the local horizontal plane. Horizons positions use an observer at zero altitude relative to the reference sphere. The API clips calculations to the requested times and estimates visibility-window boundaries by linear interpolation between 30-minute samples. Windows describe center-of-disk visibility. The model estimates the availability of sunlight and a potential direct line of sight to Earth.
+Azimuth runs clockwise from north. The dataset stores apparent, airless azimuth and elevation for the Sun center (10) and Earth center (399), observed from each catalog point in the Moon's MEAN_ME frame. The geometric horizon is 0° relative to the local horizontal plane. Horizons positions use an observer at zero altitude relative to the reference sphere. The API clips calculations to the requested times and estimates visibility-window boundaries by linear interpolation between 30-minute samples. By default, windows use center-of-disk visibility. The optional `visibility` values `disk_any` and `disk_full` use nominal angular radii of 0.2666° for the Sun and 0.95° for Earth. The terrain altitude is taken at the center azimuth, so these modes approximate disk edges. The model estimates the availability of sunlight and a potential direct line of sight to Earth.
 
 The authoritative ephemeris is NASA/JPL Horizons DE441. Site coordinates come from Table A2.1-1 of the NASA Lunar Surface Data Book. The catalog is a set of representative points with east-positive longitudes. [JPL Horizons](https://ssd.jpl.nasa.gov/horizons/) · [NASA Lunar Surface Data Book](https://ntrs.nasa.gov/api/citations/20250002845/downloads/M2M-30044%20Lunar%20Surface%20Data%20Book%20Baseline_Final.pdf)
 
@@ -56,11 +56,11 @@ uv run --locked python -m scripts.import_horizons \
 
 ### Terrain mode
 
-Set `"horizon": "terrain"` on a Connecting Ridge or Shackleton Rim scenario. The bundled profiles use an 80 m LOLA DEM, a local observer 2 m above the raster surface, a 45 km search radius, and 0.5° azimuth spacing. The ray elevation calculation includes lunar curvature. The terrain comparisons use the same Horizons angles as geometric mode, approximating the small parallax difference between the reference-sphere and local terrain observer. Terrain beyond the search radius and features finer than the DEM resolution can affect actual visibility.
+Set `"horizon": "terrain"` for any catalog site, including Malapert Massif. Custom coordinates use the geometric horizon. The bundled profiles use an 80 m LOLA DEM, a local observer 2 m above the raster surface, a 45 km search radius, and 0.5° azimuth spacing. The ray elevation calculation includes lunar curvature. The terrain comparisons use the same Horizons angles as geometric mode, approximating the small parallax difference between the reference-sphere and local terrain observer. Terrain beyond the search radius and features finer than the DEM resolution can affect actual visibility.
 
 Terrain calculations split each ephemeris interval at the azimuth knots of the terrain profile. Clearance is linear within each segment. The API finds crossings on the source grid before clipping them to the requested dates.
 
-For Connecting Ridge on January 7–14, 2027 UTC, the Earth center is above the geometric horizon for **40.760%** of the interval and above the modeled terrain horizon for **28.305%**. [NASA LOLA DEM](https://pgda.gsfc.nasa.gov/products/90)
+For Connecting Ridge on January 7–14, 2027 UTC, the Earth center is above the geometric horizon for **40.76%** of the interval and above the modeled terrain horizon for **28.31%**. [NASA LOLA DEM](https://pgda.gsfc.nasa.gov/products/90)
 
 To regenerate the profiles, download [LDEM_80S_80MPP_ADJ.TIF](https://pgda.gsfc.nasa.gov/data/LOLA_20mpp/LDEM_80S_80MPP_ADJ.TIF). Then run from `backend/`.
 
@@ -150,4 +150,12 @@ The atlas uses the [240 m LOLA polar elevation map](https://pgda.gsfc.nasa.gov/d
 
 The language picker and scene controls use Google's [Material Symbols Rounded](https://github.com/google/material-design-icons) (Apache 2.0).
 
-The Compare overview uses [NASA/SDO imagery of the Sun](https://svs.gsfc.nasa.gov/14709/) and [NASA's VIIRS image of Earth](https://science.nasa.gov/photojournal/earth/). The three bodies are arranged to show clearance above or below the selected site's horizon. Their sizes and distances are illustrative.
+The Compare overview uses [NASA/SDO imagery of the Sun](https://svs.gsfc.nasa.gov/14709/) and renders its 2D Earth portrait from the same [NASA Earth model](https://solarsystem.nasa.gov/gltf_embed/2393/) as the 3D view. The three bodies are arranged to show clearance above or below the selected site's horizon. Their sizes and distances are illustrative.
+
+### Browser calculations and window search
+
+When the API is unavailable, the browser loads the published ephemerides and computes results for any catalog site and date range supported by the quarter. The site files include visibility intervals calculated on the same source grid as the API. The browser clips those intervals to the requested dates and computes totals, overlap and outages. Custom coordinates require the live SPICE provider.
+
+The window search ranks 6.5-day intervals by the longest uninterrupted Sun window, then by the time with both bodies visible, then by Earth visibility. The heatmap shows the results for windows starting at daily UTC boundaries. The three ranked windows also consider changes at visibility boundaries.
+
+The Method section reports the maximum difference between JPL Horizons DE441 and local NAIF SPICE DE440 elevations across the full catalog and quarter. Regenerate it from `backend/` with `uv run --locked --group spice python -m scripts.validate_ephemerides data/kernels`.

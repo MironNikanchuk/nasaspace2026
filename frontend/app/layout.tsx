@@ -4,6 +4,7 @@ import { LanguageProvider } from "@/components/language";
 
 export const metadata: Metadata = {
   title: { default: "MoonSight | Lunar Landing Site Navigator", template: "%s · MoonSight" },
+  metadataBase: new URL("https://nasa.blizzard.guru"),
   icons: { icon: "/media/moonsight-mark.svg" },
   description: "Compare sunlight and direct-to-Earth visibility at the lunar south pole using NASA data.",
 };

@@ -65,7 +65,7 @@
 .globeViewport {
   min-height: 350px;
   height: clamp(350px, 56vw, 570px);
-  background: #10120f url('/media/moon.jpg') center / auto 77% no-repeat;
+  background: #10120f url('/media/moon-poster.webp') center / auto 77% no-repeat;
 }
 
 .globeViewport.ready {
@@ -276,7 +276,7 @@
   min-height: 0;
   aspect-ratio: 1;
   border: 0;
-  background: transparent url("/media/moon.jpg") center / 84% no-repeat;
+  background: transparent url("/media/moon-poster.webp") center / 84% no-repeat;
   background-blend-mode: screen;
 }
 .heroGlobe.ready {
@@ -345,4 +345,16 @@
 }
 .globeViewport[data-view="pole"] .fallback { background: #10121695; }
 .poleUnavailable { position: absolute; top: 12px; inset-inline: 10px; text-align: center; }
-.cameraTools button { display: grid; place-items: center; border-radius: 7px; border-color: #ffffff35; background: #17191be8; }
+.cameraTools button { display: grid; place-items: center; border-radius: 999px; border-color: #ffffff35; background: #17191be8; }
+
+.placeLabel { font-size: 14px; font-weight: 500; color: var(--ink); }
+.marker, .anchor { user-select: none; }
+.marker { display: inline-flex; align-items: center; gap: 4px; max-width: min(190px, 48%); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.marker b { flex: none; }
+.anchor { pointer-events: auto; border: 0; padding: 0; width: 10px; height: 10px; }
+.anchor[data-layer="sun"] { background: var(--sun); box-shadow: 0 0 0 6px color-mix(in srgb, var(--sun) 40%, transparent); }
+.anchor[data-layer="earth"] { background: var(--earth); box-shadow: 0 0 0 6px color-mix(in srgb, var(--earth) 40%, transparent); }
+.poleMarker { position: absolute; transform: translate(-50%, 8px); white-space: nowrap; font-size: 11px; font-weight: 600; color: #fff; text-shadow: 0 1px 3px black, 0 0 2px black; }
+.poleMarker::before { content: "+"; position: absolute; left: 50%; top: -22px; transform: translateX(-50%); font-size: 20px; }
+.scaleBar { position: absolute; bottom: 12px; left: 12px; width: 44px; border: solid #fff; border-width: 0 1px 2px; color: #fff; text-align: center; font-size: 11px; text-shadow: 0 1px 2px black; white-space: nowrap; }
+.viewport[data-picking="true"] { cursor: crosshair; }

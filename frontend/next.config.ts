@@ -2,6 +2,14 @@ import type { NextConfig } from "next";
 
 const config: NextConfig = {
   poweredByHeader: false,
+  async redirects() {
+    return [{
+      source: "/:path*",
+      has: [{ type: "host", value: "lunawindow-gameover.vercel.app" }],
+      destination: "https://nasa.blizzard.guru/:path*",
+      permanent: true,
+    }];
+  },
   async headers() {
     return [{
       source: "/:path*",

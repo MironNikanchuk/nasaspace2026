@@ -9,7 +9,7 @@ type Context = { params: Promise<{ resource: string }> };
 async function forward(resource: string, options: RequestInit) {
   try {
     const reply = await fetch(`${origin}/api/v1/${resource}`, {
-      ...options, cache: "no-store", signal: AbortSignal.timeout(10_000), redirect: "error",
+      ...options, cache: "no-store", signal: AbortSignal.timeout(4_000), redirect: "error",
     });
     if (reply.status >= 500) return;
     const data = await reply.json();
@@ -51,7 +51,7 @@ export async function POST(request: NextRequest, context: Context) {
   const snapshot = demoComparison(pair);
   if (snapshot) return NextResponse.json(snapshot);
   return NextResponse.json(
-    { detail: "Live API unavailable. Load a preset to explore the bundled January 7–14 results." },
+    { detail: "Live API unavailable." },
     { status: 503 },
   );
 }

@@ -7,7 +7,7 @@ const results = snapshot.results as Record<string, Result>;
 
 export function demoComparison(pair: ScenarioPair): Comparison | undefined {
   const scenarios = pair.map((scenario) => {
-    if (!scenario.site_id || Date.parse(scenario.start_utc) !== Date.parse(DEMO_START)
+    if (!scenario.site_id || (scenario.visibility && scenario.visibility !== "disk_center") || Date.parse(scenario.start_utc) !== Date.parse(DEMO_START)
       || Date.parse(scenario.end_utc) !== Date.parse(DEMO_END)) return;
     return results[`${scenario.site_id}:${scenario.horizon ?? "geometric"}`];
   });

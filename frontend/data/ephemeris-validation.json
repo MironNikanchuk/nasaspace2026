@@ -1,0 +1,10 @@
+{
+  "start_utc": "2027-01-01T00:00:00+00:00",
+  "end_utc": "2027-04-01T00:00:00+00:00",
+  "site_count": 14,
+  "timestamps_across_sites": 60494,
+  "maximum_elevation_difference_deg": {
+    "sun": 6.1e-07,
+    "earth": 5.8e-07
+  }
+}

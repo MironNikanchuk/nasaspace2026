@@ -4,13 +4,13 @@
 
 **Challenge** Lunar Landing Site Navigator — NASA Space Apps Challenge 2026
 
-- [Public app](https://lunawindow-gameover.vercel.app/)
-- [Terrain impact demo](https://lunawindow-gameover.vercel.app/workspace?preset=terrain-impact)
-- [30-second video (MP4)](https://lunawindow-gameover.vercel.app/media/lunawindow-demo.mp4)
+- [Public app](https://nasa.blizzard.guru/)
+- [Terrain impact demo](https://nasa.blizzard.guru/workspace?preset=terrain-impact)
+- [30-second video (MP4)](https://nasa.blizzard.guru/media/lunawindow-demo.mp4)
 
 ## Project summary
 
-MoonSight compares candidate landing scenarios near the Moon’s south pole. Select two sites or dates to see when the centers of the Sun and Earth are above the horizon, how long their visibility overlaps, and how local terrain changes those estimates. The comparison uses JPL Horizons ephemerides and two terrain profiles built from NASA’s Lunar Orbiter Laser Altimeter data.
+MoonSight compares candidate landing scenarios near the Moon’s south pole. Select two sites or dates to see when the centers of the Sun and Earth are above the horizon, how long their visibility overlaps, and how local terrain changes those estimates. The comparison uses JPL Horizons ephemerides and terrain profiles built from NASA’s Lunar Orbiter Laser Altimeter data.
 
 For a seven-day example on Connecting Ridge, including the modeled terrain reduces Earth-center visibility from 40.76% to 28.31%. Over that period, the longest stretch without Earth-center visibility increases from about 99.5 to 120.4 hours. The values estimate line of sight under the stated geometric and terrain models.
 
