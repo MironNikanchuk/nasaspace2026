@@ -32,7 +32,7 @@ export function VisibilityOverview({ sample, site, view, select }: {
   sample: Sample; site: string; view: 0 | 1; select: (view: 0 | 1) => void;
 }) {
   const { t } = useLanguage();
-  const [mode, setMode] = useState<SceneMode>("2d");
+  const [mode, setMode] = useState<SceneMode>("3d");
   const sunY = verticalPosition(sample.sun);
   const earthY = verticalPosition(sample.earth);
   const positions = { "--sun-y": `${sunY}%`, "--earth-y": `${earthY}%` } as CSSProperties;
@@ -59,6 +59,6 @@ export function VisibilityOverview({ sample, site, view, select }: {
       <Body name="Earth" position={sample.earth} />
       </>}
     </div>
-    <figcaption>{t("Height shows clearance above or below the local horizon. Sizes and spacing are illustrative.")}</figcaption>
+    <figcaption>{t("Angles are relative to the local horizon. Bodies and distances are not to scale.")}</figcaption>
   </figure>;
 }

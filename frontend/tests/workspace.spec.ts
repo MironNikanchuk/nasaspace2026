@@ -62,6 +62,7 @@ test("guest can save and delete a scenario", async ({ page }) => {
 test("the three-body view follows the scenario switch and shared time controls", async ({ page }) => {
   await page.goto("/workspace?preset=site-tradeoff");
   const overview = page.getByRole("figure", { name: "Sun and Earth from the Moon" });
+  await expect(overview.getByRole("button", { name: "3D", exact: true })).toHaveAttribute("aria-pressed", "true");
   await expect(overview.getByText("Moon", { exact: true })).toBeVisible();
   await expect(overview.getByText("Connecting Ridge", { exact: true })).toBeVisible();
   await expect(overview.getByText(/-5.35° · Hidden/)).toBeVisible();
@@ -69,10 +70,6 @@ test("the three-body view follows the scenario switch and shared time controls",
   await expect(overview.getByText("Malapert Massif", { exact: true })).toBeVisible();
   const time = page.getByRole("slider", { name: "Time (UTC)" });
   await time.press("End");
-  await expect(overview.getByText(/\+8.1° · Visible/)).toBeVisible();
-  await overview.getByRole("button", { name: "3D" }).click();
-  await expect(overview.getByRole("button", { name: "3D" })).toHaveAttribute("aria-pressed", "true");
-  await expect(overview.getByText("Malapert Massif", { exact: true })).toBeVisible();
   await expect(overview.getByText(/\+8.10° · Visible/)).toBeVisible();
   await overview.getByRole("button", { name: "2D" }).click();
   await expect(overview.getByText(/\+8.1° · Visible/)).toBeVisible();
@@ -85,6 +82,8 @@ test("the three-body view follows the scenario switch and shared time controls",
 test("language selection persists across the landing page, atlas and sources", async ({ page }) => {
   await page.setViewportSize({ width: 320, height: 800 });
   await page.goto("/");
+  await expect(page.getByRole("link", { name: "Workspace", exact: true })).toHaveAttribute("href", "/workspace");
+  await expect(page.getByText("Nikanchuk Miron", { exact: true })).toBeVisible();
   const language = page.getByRole("button", { name: "Language" });
   await language.press("ArrowDown");
   await expect(page.getByRole("button", { name: "English" })).toBeFocused();
@@ -93,10 +92,16 @@ test("language selection persists across the landing page, atlas and sources", a
   await expect(language).toHaveAttribute("aria-expanded", "false");
   await language.click();
   await page.getByRole("button", { name: "Русский" }).click();
-  await expect(page.getByRole("heading", { name: "Как рельеф меняет видимость" })).toBeVisible();
-  await expect(page.getByRole("figure", { name: "Видимость Земли на Connecting Ridge" }).locator("svg image")).toHaveCount(3);
+  await expect(page.getByRole("link", { name: "К расчётам", exact: true })).toHaveAttribute("href", "/workspace");
+  const terrain = page.getByRole("figure", { name: "Видимость Земли на Connecting Ridge" });
+  await expect(terrain.getByRole("button", { name: "3D", exact: true })).toHaveAttribute("aria-pressed", "true");
+  await terrain.getByRole("button", { name: "2D", exact: true }).click();
+  await expect(terrain.locator("svg image")).toHaveCount(3);
   await page.getByRole("link", { name: "Лунный атлас", exact: true }).click();
   await expect(page.getByRole("heading", { name: "Лунный атлас", exact: true })).toBeVisible();
+  const atlas = page.getByRole("figure", { name: "Интерактивная карта мест посадки" });
+  await expect(atlas.getByRole("button", { name: "Южный полюс" })).toHaveAttribute("aria-pressed", "true");
+  await expect(atlas.getByRole("button", { name: "3D", exact: true })).toHaveAttribute("aria-pressed", "true");
   await page.getByRole("button", { name: "Язык" }).click();
   await page.getByRole("button", { name: "O‘zbekcha" }).click();
   await expect(page.getByRole("heading", { name: "Oy atlasi", exact: true })).toBeVisible();

@@ -32,7 +32,7 @@ export function TerrainAnimation({ frames }: { frames: Sample[] }) {
   const [terrain, setTerrain] = useState(true);
   const [playing, setPlaying] = useState(false);
   const frame = frames[index];
-  const [mode, setMode] = useState<SceneMode>("2d");
+  const [mode, setMode] = useState<SceneMode>("3d");
   const stage = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -89,12 +89,12 @@ export function TerrainAnimation({ frames }: { frames: Sample[] }) {
       </g>
     </svg>}</div>
     <div className={styles.terrainReadings}>
-      <span>{t("Earth elevation")} <strong>{frame.earth.elevation_deg.toFixed(2)}°</strong></span>
-      <span>{t("Horizon at Earth’s azimuth")} <strong>{height.toFixed(2)}°</strong></span>
+      <span>{t("Earth’s elevation angle")} <strong>{frame.earth.elevation_deg.toFixed(2)}°</strong></span>
+      <span>{t("Horizon toward Earth")} <strong>{height.toFixed(2)}°</strong></span>
     </div>
     <div className={styles.terrainControls}>
       <div className="segmented" aria-label={t("Horizon model")}>
-        <button type="button" aria-pressed={!terrain} onClick={() => setTerrain(false)}>{t("Geometric")}</button>
+        <button type="button" aria-pressed={!terrain} onClick={() => setTerrain(false)}>{t("0° horizon")}</button>
         <button type="button" aria-pressed={terrain} onClick={() => setTerrain(true)}>{t("LOLA terrain")}</button>
       </div>
       <button className="button button-small" type="button" aria-label={t(playing ? "Pause" : "Play")} title={t(playing ? "Pause" : "Play")} onClick={() => setPlaying(!playing)}><MaterialSymbol name={playing ? "pause" : "play_arrow"} /></button>
@@ -105,6 +105,6 @@ export function TerrainAnimation({ frames }: { frames: Sample[] }) {
         min={0} max={frames.length - 1} value={index}
         onChange={(event) => { setPlaying(false); setIndex(Number(event.target.value)); }} />
     </label>
-    <figcaption>{t("Illustrated ridge profile")} · {t("Angles from")} <a href="https://ssd.jpl.nasa.gov/horizons/">JPL Horizons</a> {t("and")} <a href="https://pgda.gsfc.nasa.gov/products/90">NASA LOLA</a></figcaption>
+    <figcaption>{t("Schematic ridge")} · {t("Angles from")} <a href="https://ssd.jpl.nasa.gov/horizons/">JPL Horizons</a> {t("and")} <a href="https://pgda.gsfc.nasa.gov/products/90">NASA LOLA</a></figcaption>
   </figure>;
 }

@@ -169,7 +169,7 @@ function comparisonInsight(result: Comparison, t: Translate) {
     const [geometric, terrain] = a.model.horizon === "geometric" ? [a, b] : [b, a];
     const change = terrain.summary.earth_visible_percent - geometric.summary.earth_visible_percent;
     if (Math.abs(change) < .05) return t("Earth visibility is the same with both horizon models at this precision.");
-    return t("At {site}, terrain changes Earth visibility from {before} to {after}.")
+    return t("At {site}, Earth is visible for {before} of the period with a 0° horizon and {after} with terrain.")
       .replace("{site}", a.site.name).replace("{before}", pct(geometric.summary.earth_visible_percent))
       .replace("{after}", pct(terrain.summary.earth_visible_percent));
   }

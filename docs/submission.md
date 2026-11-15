@@ -1,6 +1,6 @@
 # MoonSight submission handoff
 
-**Team** GameOver — Miron Nikanchuk, Topuzov Ruslan, Bekturov Shoxruz, Alixonov Amirxon
+**Team** GameOver — Nikanchuk Miron, Topuzov Ruslan, Bekturov Shoxruz, Alixonov Amirxon
 
 **Challenge** Lunar Landing Site Navigator — NASA Space Apps Challenge 2026
 

@@ -59,8 +59,8 @@ export function Atlas({ initial }: { initial: Catalog }) {
           </button>;
         })}</div>
         <div className="action-row">
-          <button className="button button-small" type="button" onClick={() => assign(0)}>{t("Set as A")}</button>
-          <button className="button button-small" type="button" onClick={() => assign(1)}>{t("Set as B")}</button>
+          <button className="button button-small" type="button" onClick={() => assign(0)}>{t("Use as site A")}</button>
+          <button className="button button-small" type="button" onClick={() => assign(1)}>{t("Use as site B")}</button>
         </div>
         <div className="atlas-pair" aria-live="polite">{pair.map((scenario, index) => <div key={index}>
           <span className="scenario-letter">{index ? "B" : "A"}</span>

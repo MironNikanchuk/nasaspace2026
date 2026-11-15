@@ -11,10 +11,10 @@ import type { Result } from "@/lib/types";
 import styles from "./landing.module.css";
 
 const team = [
-  ["Miron Nikanchuk", "MN", "Team lead · Full-stack development"],
-  ["Topuzov Ruslan", "TR", "Frontend development · Research"],
-  ["Bekturov Shoxruz", "BS", "Backend development · Research"],
-  ["Alixonov Amirxon", "AA", "Research · Presentation and speechwriting"],
+  ["Nikanchuk Miron", "NM", "Team lead and full-stack developer"],
+  ["Topuzov Ruslan", "TR", "Frontend development and research"],
+  ["Bekturov Shoxruz", "BS", "Backend development and research"],
+  ["Alixonov Amirxon", "AA", "Research, presentation and script"],
 ];
 
 const terrainPreset = PRESETS.find((preset) => preset.id === "terrain-impact");
@@ -58,25 +58,17 @@ export default function Landing() {
           <a href="#method"><Icon name="file-document" width={18} />{t("Method")}</a>
           <a href="#team"><Icon name="profile" width={18} />{t("Team")}</a>
         </nav>
-        <div className={styles.navActions}>
-          <LanguageSelect />
-          <Link className={styles.navAction} href="/workspace">
-            <Icon name="view-grid" width={18} /> {t("Workspace")}
-          </Link>
-        </div>
+        <div className={styles.navActions}><LanguageSelect /></div>
       </header>
 
       <main id="main" tabIndex={-1}>
         <div className={styles.heroSpace}><section className={`${styles.wrap} ${styles.hero}`} aria-labelledby="hero-title">
           <div className={styles.heroCopy}>
-            <h1 id="hero-title">{t("Find your window")} <span>{t("on the Moon.")}</span></h1>
-            <p>{t("Compare sunlight and Earth visibility near the lunar south pole.")}</p>
+            <h1 id="hero-title">{t("Lunar landing sites")}</h1>
+            <p>{t("Check when the Sun and Earth are visible from landing sites near the Moon’s south pole.")}</p>
             <div className={styles.actions}>
               <Link className={styles.primary} href="/workspace">
-                {t("Compare landing sites")} <Icon name="arrow-right" width={18} />
-              </Link>
-              <Link className={styles.inlineAction} href="/atlas">
-                {t("Explore the atlas")} <Icon name="arrow-top-right" width={15} />
+                {t("Workspace")} <Icon name="arrow-right" width={18} />
               </Link>
             </div>
           </div>
@@ -85,12 +77,12 @@ export default function Landing() {
 
         <section className={`${styles.wrap} ${styles.evidence}`} id="method" aria-labelledby="method-title">
           <div className={styles.evidenceCopy}>
-            <h2 id="method-title">{t("How terrain changes the view")}</h2>
-            <p>{t("At Connecting Ridge, a nearby ridge can hide Earth even when it’s above 0°.")}</p>
+            <h2 id="method-title">{t("When the ridge hides Earth")}</h2>
+            <p>{t("From Connecting Ridge, Earth can be above the 0° horizon and still be hidden by the ridge.")}</p>
             {terrainExample && (
               <figure className={styles.visibility}>
                 <figcaption>
-                  <strong>{t("Earth above the horizon")}</strong>
+                  <strong>{t("Earth visibility")}</strong>
                   <span>{dateFormat.formatRange(new Date(terrainExample.scenarios[0].start_utc), new Date(terrainExample.scenarios[0].end_utc)).replace(/[\u2009\u202f\u00a0]/g, " ")} UTC</span>
                 </figcaption>
                 {terrainExample.scenarios.map((result) => <VisibilityRow key={result.model.horizon} result={result} />)}

@@ -323,11 +323,12 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
   hero?: boolean;
 }) {
   const { t } = useLanguage();
-  const [view, setView] = useState<GlobeView>("moon");
+  const [view, setView] = useState<GlobeView>(hero ? "moon" : "pole");
   const [webgl, setWebgl] = useState(false);
   const [panning, setPanning] = useState(false);
-  const [poleMode, setPoleMode] = useState<SceneMode>("2d");
+  const [poleMode, setPoleMode] = useState<SceneMode>("3d");
   const [hasRelief, setHasRelief] = useState(false);
+  const [rendererFailed, setRendererFailed] = useState(false);
   const [reliefFailed, setReliefFailed] = useState(false);
   const canvas = useRef<HTMLCanvasElement>(null);
   const surface = useRef<HTMLDivElement>(null);
@@ -347,7 +348,10 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
     const element = canvas.current;
     if (!element || !surface.current) return;
     const renderer = planetRenderer(element);
-    if (!renderer) return;
+    if (!renderer) {
+      setRendererFailed(true);
+      return;
+    }
     let closed = false;
     const scene = new Scene();
     const camera = new OrthographicCamera(-1.3, 1.3, 1.3, -1.3, .1, 12);
@@ -450,7 +454,7 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
     };
     const observer = new ResizeObserver(resize);
     observer.observe(element);
-    const unavailable = () => setWebgl(false);
+    const unavailable = () => setRendererFailed(true);
     element.addEventListener("webglcontextlost", unavailable);
 
     let spin: ReturnType<typeof setInterval> | undefined;
@@ -508,13 +512,14 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
   }, [sites, view, poleMode]);
 
   const flatPole = view === "pole" && poleMode === "2d";
-  const ready = view === "moon" ? webgl : webgl && hasRelief;
+  const ready = !rendererFailed && (view === "moon" ? webgl : hasRelief);
+  const polarStatus = rendererFailed || reliefFailed ? "3D view unavailable on this device." : "Preparing 3D scene…";
 
   return <figure className={styles.figure} aria-label={t(hero ? "Interactive 3D Moon" : "Interactive lunar landing site map")}>
     {!hero && <div className={styles.toolbar}>
       <div className={styles.switches} aria-label={t("Globe camera")}>
         <button type="button" aria-pressed={view === "pole"} onClick={() => { controls.current?.reset(); setPanning(false); setView("pole"); }}>{t("South pole")}</button>
-        <button type="button" aria-pressed={view === "moon"} onClick={() => { controls.current?.reset(); setPanning(false); setView("moon"); }}>{t("Full Moon")}</button>
+        <button type="button" aria-pressed={view === "moon"} onClick={() => { controls.current?.reset(); setPanning(false); setView("moon"); }}>{t("Globe")}</button>
       </div>
       {view === "pole" && <ViewMode mode={poleMode} onChange={(mode) => {
         if (poleMode === mode) return;
@@ -526,7 +531,7 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
     <div ref={surface} data-panning={flatPole || panning} data-view={view} className={`${styles.viewport} ${styles.globeViewport} ${hero ? styles.heroGlobe : ""} ${ready ? styles.ready : ""}`}
       tabIndex={ready ? 0 : undefined} role="group" aria-label={t("Moon camera")}>
       <div className={styles.fallback}>
-        {view === "pole" && poleMode === "3d" && (reliefFailed || !webgl) && <span className={styles.poleUnavailable} role="status">{t("3D view unavailable on this device.")}</span>}
+        {view === "pole" && poleMode === "3d" && !ready && <span className={styles.poleUnavailable} role="status">{t(polarStatus)}</span>}
         <div className={styles.fallbackOptions}>
           {sites.map((site, index) => <button key={site.id} type="button" aria-pressed={selectedId === site.id}
             onClick={() => onSelect?.(site.id)}>{index + 1} · {site.name}</button>)}
@@ -553,7 +558,7 @@ export function LunarGlobe({ sites, selectedId, onSelect, assignments, hero = fa
       </div>}
     </div>
     {!hero && view === "pole" && <figcaption>
-      {poleMode === "3d" ? t("NASA LOLA · Relief exaggerated") : "NASA LOLA"}
+      {poleMode === "3d" ? t("NASA LOLA · Elevation ×4") : "NASA LOLA"}
     </figcaption>}
     {hero && <figcaption><a href="/sources">{t("NASA Moon model")}</a></figcaption>}
   </figure>;
