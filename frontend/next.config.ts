@@ -4,8 +4,9 @@ const config: NextConfig = {
   poweredByHeader: false,
   async redirects() {
     return [{
-      source: "/:path*",
+      source: "/:path((?!open-direct$).*)",
       has: [{ type: "host", value: "lunawindow-gameover.vercel.app" }],
+      missing: [{ type: "cookie", key: "moonsight_direct", value: "1" }],
       destination: "https://nasa.blizzard.guru/:path*",
       permanent: true,
     }];
